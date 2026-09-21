@@ -30,7 +30,7 @@ export default {
   },
   onClick() {
     this.$app.$def.feedback()
-    this.$emit('press')
+    // click 继续冒泡到页面的原生按钮容器，由容器执行页面操作。
   }
 }
 </script>

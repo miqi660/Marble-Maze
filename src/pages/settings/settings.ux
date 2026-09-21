@@ -17,8 +17,8 @@
       <switch class="sw" checked="{{ vibrateOn }}" @change="onToggle"></switch>
     </div>
 
-    <div class="abs" style="left: 24px; top: 300px">
-      <btn-hard label="返回" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18" @press="goBack"></btn-hard>
+    <div class="abs" style="left: 24px; top: 300px" @click="goBack">
+      <btn-hard label="返回" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
     </div>
   </stack>
 </template>

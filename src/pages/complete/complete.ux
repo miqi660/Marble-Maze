@@ -26,11 +26,11 @@
       <text class="card-value">{{ time }}s</text>
     </div>
 
-    <div class="abs" style="left: 16px; top: 344px">
-      <btn-hard label="{{ hasNext ? '下一关' : '重玩' }}" width="160" height="58" bg="#FFD323" shadow="#FF5B8D" font-size="22" @press="onNext"></btn-hard>
+    <div class="abs" style="left: 16px; top: 344px" @click="onNext">
+      <btn-hard label="{{ hasNext ? '下一关' : '重玩' }}" width="160" height="58" bg="#FFD323" shadow="#FF5B8D" font-size="22"></btn-hard>
     </div>
-    <div class="abs" style="left: 24px; top: 414px">
-      <btn-hard label="返回关卡" width="144" height="40" bg="#FFFFFF" shadow="#FFD323" font-size="16" @press="onBack"></btn-hard>
+    <div class="abs" style="left: 24px; top: 414px" @click="onBack">
+      <btn-hard label="返回关卡" width="144" height="40" bg="#FFFFFF" shadow="#FFD323" font-size="16"></btn-hard>
     </div>
   </stack>
 </template>
@@ -38,6 +38,7 @@
 <script>
 import router from '@system.router'
 import { OFFICIAL } from '../../common/levels.js'
+import { returnToPage } from '../../common/navigation.js'
 
 export default {
   protected: {
@@ -60,11 +61,22 @@ export default {
     }
   },
   onNext() {
+    if (this.leaving) return
+    this.leaving = true
     const next = this.hasNext ? this.index + 1 : this.index
     router.replace({ uri: '/pages/game', params: { pack: this.pack, index: String(next) } })
   },
   onBack() {
-    router.back({ path: '/pages/levels' })
+    if (this.leaving) return
+    this.leaving = true
+    returnToPage('/pages/levels')
+  },
+  onShow() {
+    this.leaving = false
+  },
+  onBackPress() {
+    this.onBack()
+    return true
   }
 }
 </script>

@@ -26,12 +26,12 @@
     </div>
 
     <!-- “开始” 160×58 黄底黑阴影 @top286 -->
-    <div class="abs" style="left: 16px; top: 286px">
-      <btn-hard label="开始" width="160" height="58" bg="#FFD323" shadow="#111111" font-size="24" @press="goLevels"></btn-hard>
+    <div class="abs" style="left: 16px; top: 286px" @click="goLevels">
+      <btn-hard label="开始" width="160" height="58" bg="#FFD323" shadow="#111111" font-size="24"></btn-hard>
     </div>
     <!-- “设置” 144×44 白底粉阴影 @top356 -->
-    <div class="abs" style="left: 24px; top: 356px">
-      <btn-hard label="设置" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18" @press="goSettings"></btn-hard>
+    <div class="abs" style="left: 24px; top: 356px" @click="goSettings">
+      <btn-hard label="设置" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
     </div>
 
     <!-- 三色点 @top429，横线 @top451 -->

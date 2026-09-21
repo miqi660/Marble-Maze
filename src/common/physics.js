@@ -48,10 +48,30 @@
     };
   }
 
-  /**
-   * 收集球所在格及 8 邻域的墙段（每段 [x1,y1,x2,y2]）
-   * cells 为 Uint8Array（decodeCells 结果）
-   */
+  /** 将合并墙段按可接触的 cell 预索引；每个 cell 中同一墙段只出现一次。 */
+  function buildCollisionIndex(level) {
+    var cols = level.cols;
+    var rows = level.rows;
+    var index = [];
+    for (var i = 0; i < cols * rows; i++) index.push([]);
+    function add(x1, y1, x2, y2) {
+      var segment = [x1, y1, x2, y2];
+      var left = clamp(Math.floor(x1 - CONST.R), 0, cols - 1);
+      var right = clamp(Math.floor(x2 + CONST.R), 0, cols - 1);
+      var top = clamp(Math.floor(y1 - CONST.R), 0, rows - 1);
+      var bottom = clamp(Math.floor(y2 + CONST.R), 0, rows - 1);
+      for (var y = top; y <= bottom; y++) {
+        for (var x = left; x <= right; x++) index[y * cols + x].push(segment);
+      }
+    }
+    var h = level.render.h;
+    var v = level.render.v;
+    for (var j = 0; j < h.length; j += 3) add(h[j], h[j + 1], h[j] + h[j + 2], h[j + 1]);
+    for (var k = 0; k < v.length; k += 3) add(v[k], v[k + 1], v[k], v[k + 1] + v[k + 2]);
+    return index;
+  }
+
+  /** 独立测试用：从原始格墙计算最近距离，不参与游戏主循环。 */
   function collectSegments(cells, cols, rows, x, y) {
     var cx = clamp(Math.floor(x), 0, cols - 1);
     var cy = clamp(Math.floor(y), 0, rows - 1);
@@ -85,8 +105,9 @@
     var py = ay + dy * t;
     var nx = state.x - px;
     var ny = state.y - py;
-    var dist = Math.sqrt(nx * nx + ny * ny);
-    if (dist >= R) return false;
+    var dist2 = nx * nx + ny * ny;
+    if (dist2 >= R * R) return false;
+    var dist = Math.sqrt(dist2);
 
     if (dist < 1e-6) {
       // 球心正好在线段上：取线段法线，方向按速度反向
@@ -114,38 +135,17 @@
     return true;
   }
 
-  /** 角点作为额外圆碰撞（线段端点），补足端点处的推出 */
-  function resolveCorner(state, cx, cy, R) {
-    var nx = state.x - cx;
-    var ny = state.y - cy;
-    var dist = Math.sqrt(nx * nx + ny * ny);
-    if (dist >= R || dist < 1e-6) return false;
-    nx /= dist;
-    ny /= dist;
-    var push = R - dist + 1e-4;
-    state.x += nx * push;
-    state.y += ny * push;
-    var vn = state.vx * nx + state.vy * ny;
-    if (vn < 0) {
-      state.vx -= vn * nx * (1 + CONST.RESTITUTION);
-      state.vy -= vn * ny * (1 + CONST.RESTITUTION);
-    }
-    return true;
-  }
-
-  function resolveCollisions(state, cells, cols, rows) {
+  function resolveCollisions(state, index, cols, rows) {
     var R = CONST.R;
     for (var pass = 0; pass < 4; pass++) {
-      var segs = collectSegments(cells, cols, rows, state.x, state.y);
+      var cx = clamp(Math.floor(state.x), 0, cols - 1);
+      var cy = clamp(Math.floor(state.y), 0, rows - 1);
+      var segs = index[cy * cols + cx];
       var hit = false;
       for (var i = 0; i < segs.length; i++) {
         if (resolveSegment(state, segs[i], R)) hit = true;
       }
-      for (var j = 0; j < segs.length; j++) {
-        var s = segs[j];
-        if (resolveCorner(state, s[0], s[1], R)) hit = true;
-        if (resolveCorner(state, s[2], s[3], R)) hit = true;
-      }
+      // resolveSegment 已包含端点最近点碰撞，不再单独重复检查每条墙的两个端点。
       if (!hit) break;
     }
     // 兜底：始终保持在迷宫外框内
@@ -155,9 +155,9 @@
 
   /**
    * 推进一帧。tiltX/tiltY 为已归一化 (±1) 且已应用 AXIS_SIGN 的倾斜值
-   * cells：Uint8Array
+   * index：进入关卡时由 buildCollisionIndex 构建
    */
-  function step(state, cells, cols, rows, tiltX, tiltY, dt) {
+  function step(state, index, cols, rows, tiltX, tiltY, dt) {
     dt = dt || CONST.DT;
     state.vx += CONST.G * tiltX * dt;
     state.vy += CONST.G * tiltY * dt;
@@ -176,7 +176,7 @@
     for (var i = 0; i < n; i++) {
       state.x += state.vx * sdt;
       state.y += state.vy * sdt;
-      resolveCollisions(state, cells, cols, rows);
+      resolveCollisions(state, index, cols, rows);
     }
     return state;
   }
@@ -213,6 +213,7 @@
     clamp: clamp,
     normalizeTilt: normalizeTilt,
     createState: createState,
+    buildCollisionIndex: buildCollisionIndex,
     collectSegments: collectSegments,
     step: step,
     reachedGoal: reachedGoal,

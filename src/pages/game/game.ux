@@ -17,7 +17,7 @@
     <div class="abs board-shadow" style="left: 11px; top: 101px"></div>
     <div class="abs board" style="left: 6px; top: 96px"></div>
 
-    <!-- 板内区域：起点格、终点、墙段（静态）、球（仅 left/top 变化） -->
+    <!-- 板内区域：静态墙段；球使用兼容的位置样式并限制为 25Hz 更新 -->
     <stack class="abs inner" style="left: 10px; top: 100px">
       <div class="abs start-cell" style="left: {{ startLeft }}px; top: {{ startTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
       <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ goalSize }}px; height: {{ goalSize }}px; border-radius: {{ goalRadius }}px"></div>
@@ -25,8 +25,8 @@
       <div class="abs ball" style="left: {{ ballLeft }}px; top: {{ ballTop }}px; width: {{ ballSize }}px; height: {{ ballSize }}px; border-radius: {{ ballRadius }}px; border-width: {{ ballBorder }}px"></div>
     </stack>
 
-    <div class="abs" style="left: 35px; top: 395px">
-      <btn-hard label="重来" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18" @press="onRestart"></btn-hard>
+    <div class="abs" style="left: 35px; top: 395px" @click="onRestart">
+      <btn-hard label="重来" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18"></btn-hard>
     </div>
     <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
   </stack>
@@ -35,9 +35,9 @@
 <script>
 import router from '@system.router'
 import sensor from '@system.sensor'
-import MazeCore from '../../common/maze-core.js'
 import Physics from '../../common/physics.js'
-import { OFFICIAL, buildOfficial, loadSlot, inflate } from '../../common/levels.js'
+import { OFFICIAL, buildOfficial } from '../../common/levels.js'
+import { returnToPage } from '../../common/navigation.js'
 
 /** 加速度低通滤波系数 */
 const LPF = 0.35
@@ -72,7 +72,7 @@ export default {
     this.index = Math.max(0, Math.min(OFFICIAL.length - 1, parseInt(this.index, 10) || 0))
     // 非响应式运行时数据挂在 this 上，避免触发视图刷新
     this.level = null
-    this.cells = null
+    this.collisionIndex = null
     this.state = null
     this.ax = 0
     this.ay = 0
@@ -89,13 +89,14 @@ export default {
       this.setupLevel(buildOfficial(this.index))
     } else {
       const slot = this.pack === 'custom_b' ? 'b' : 'a'
-      loadSlot(slot, (slim) => {
+      this.$app.$def.slotStore.ready.then(() => {
         if (this.disposed) return
-        if (!slim) {
-          router.back()
+        const level = this.$app.$def.slotStore.getLevel(slot)
+        if (!level) {
+          this.onBackPress()
           return
         }
-        this.setupLevel(inflate(slim))
+        this.setupLevel(level)
       })
     }
   },
@@ -103,7 +104,7 @@ export default {
   /** 载入关卡：计算尺寸、生成静态墙段、放置球 */
   setupLevel(level) {
     this.level = level
-    this.cells = MazeCore.decodeCells(level.cells)
+    this.collisionIndex = Physics.buildCollisionIndex(level)
     this.levelName = level.name || 'CUSTOM'
     const cols = level.cols
     const rows = level.rows
@@ -161,23 +162,30 @@ export default {
     this.lastTick = Date.now()
     this.finished = false
     this.timeText = '00.0'
+    this.lastBallDraw = this.lastTick
+    this.lastHudDraw = this.lastTick
     this.syncBall()
   },
 
-  /** 将 cell 坐标写入球的 left/top */
+  /** P0 隔离：回退动态 transform，位置只在 25Hz 绘制时更新。 */
   syncBall() {
     const cellPx = this.cellPx
     const r = this.ballSize / 2
-    this.ballLeft = Math.round(this.offX + this.state.x * cellPx - r)
-    this.ballTop = Math.round(this.offY + this.state.y * cellPx - r)
+    const left = Math.round(this.offX + this.state.x * cellPx - r)
+    const top = Math.round(this.offY + this.state.y * cellPx - r)
+    if (left !== this.ballLeft) this.ballLeft = left
+    if (top !== this.ballTop) this.ballTop = top
   },
 
   onShow() {
+    if (this.disposed || this.finished || this.running) return
+    this.running = true
     const self = this
     try {
       sensor.subscribeAccelerometer({
         interval: 'game',
         callback(ret) {
+          if (!self.running) return
           self.ax += (ret.x - self.ax) * LPF
           self.ay += (ret.y - self.ay) * LPF
         },
@@ -203,13 +211,16 @@ export default {
   },
 
   onBackPress() {
+    if (this.disposed) return true
     this.disposed = true
     this.stopLoop()
-    router.back({ path: '/pages/levels' })
+    returnToPage('/pages/levels')
     return true
   },
 
   stopLoop() {
+    if (!this.running) return
+    this.running = false
     try {
       sensor.unsubscribeAccelerometer()
     } catch (e) {}
@@ -221,31 +232,45 @@ export default {
 
   /** 用真实前台时间累计，以 20ms 固定步长推进物理。 */
   tick() {
-    if (!this.ready || this.finished || this.disposed) return
+    if (!this.running || !this.ready || this.finished || this.disposed) return
     const now = Date.now()
     const delta = Math.max(0, now - this.lastTick)
     this.lastTick = now
     this.elapsed += delta
-    // 长卡顿最多补算 250ms，避免无限追帧；HUD 仍保留完整实际用时。
-    this.accumulator += Math.min(delta, 250)
+    this.accumulator += delta
     const lv = this.level
     const tx = Physics.AXIS_SIGN.x * Physics.normalizeTilt(this.ax)
     const ty = Physics.AXIS_SIGN.y * Physics.normalizeTilt(this.ay)
     const stepMs = Physics.CONST.DT * 1000
     let won = false
-    while (this.accumulator + 1e-7 >= stepMs) {
+    let steps = 0
+    while (steps < 3 && this.accumulator + 1e-7 >= stepMs) {
       this.accumulator = Math.max(0, this.accumulator - stepMs)
-      Physics.step(this.state, this.cells, lv.cols, lv.rows, tx, ty, Physics.CONST.DT)
+      Physics.step(this.state, this.collisionIndex, lv.cols, lv.rows, tx, ty, Physics.CONST.DT)
+      steps++
       if (Physics.reachedGoal(this.state, lv)) {
         won = true
         break
       }
     }
-    this.syncBall()
+    // 超出三步的积压直接丢弃，仅保留不足一步的余量。
+    if (this.accumulator >= stepMs) this.accumulator %= stepMs
+    if (won || now - this.lastBallDraw >= 40) {
+      this.syncBall()
+      this.lastBallDraw = now
+    }
+    if (won || now - this.lastHudDraw >= 200) {
+      this.syncHud()
+      this.lastHudDraw = now
+    }
+    if (won) this.onWin()
+  },
+
+  syncHud() {
     const t = Math.floor(this.elapsed / 100)
     const s = Math.floor(t / 10)
-    this.timeText = (s < 10 ? '0' + s : '' + s) + '.' + (t % 10)
-    if (won) this.onWin()
+    const timeText = (s < 10 ? '0' + s : '' + s) + '.' + (t % 10)
+    if (timeText !== this.timeText) this.timeText = timeText
   },
 
   onWin() {

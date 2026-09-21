@@ -16,8 +16,8 @@ const game = readUx('src/pages/game/game.ux', { Physics, OFFICIAL: new Array(6),
 function simulate(hz) {
   now = 0
   const page = Object.assign({}, game, {
-    ready: true, disposed: false, finished: false, elapsed: 0, accumulator: 0, lastTick: 0,
-    level: { cols: 100, rows: 100, goal: 9999 }, cells: new Uint8Array(10000),
+    running: true, ready: true, disposed: false, finished: false, elapsed: 0, accumulator: 0, lastTick: 0, lastBallDraw: 0, lastHudDraw: 0,
+    level: { cols: 100, rows: 100, goal: 9999 }, collisionIndex: new Array(10000).fill([]),
     state: { x: 50, y: 50, vx: 0, vy: 0 }, ax: -4.9, ay: 0, syncBall() {}
   })
   for (let i = 1; i <= hz; i++) { now = Math.round(i * 1000 / hz); page.tick() }
@@ -42,7 +42,7 @@ async function progressTest() {
   const writes = []
   const app = readUx('src/app.ux', {
     OFFICIAL: new Array(6), storage: { get(o) { if (o.key === 'progress') read = o }, set(o) { writes.push(o) } },
-    Handshake: function () {}, vibrator: {}
+    Handshake: class { register() { return { destroy() {} } } }, vibrator: {}, MazeSync: {}, SlotStore: class { init() {} }
   })
   app.progress = 0
   app.onCreate()
@@ -53,7 +53,7 @@ async function progressTest() {
   assert.equal(app.progress, 6)
   assert.equal(writes[0].value, '6')
   const pages = readUx('src/pages/levels/levels.ux', { OFFICIAL: new Array(6).fill({ difficulty: 'easy' }) })
-  const page = Object.assign({}, pages, { $valid: true, $app: { $def: app } })
+  const page = Object.assign({}, pages, { $valid: true, $app: { $def: Object.assign(app, { slotStore: { get: () => null } }) }, slots: [{ level: null }, { level: null }], officialCards: [] })
   page.onInit()
   await Promise.resolve()
   assert.equal(page.officialCards.length, 6)

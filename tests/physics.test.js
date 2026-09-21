@@ -21,12 +21,13 @@ for (const name of Object.keys(MazeCore.PRESETS)) {
     const seed = (s * 7919 + name.length * 131) >>> 0
     const level = MazeCore.buildLevel(p.cols, p.rows, seed, name)
     const cells = MazeCore.decodeCells(level.cells)
+    const collisionIndex = Physics.buildCollisionIndex(level)
     for (const [tx, ty] of tilts) {
       const st = Physics.createState(level)
       for (let i = 0; i < STEPS; i++) {
         // 每 300 步换一次方向，避免球一直贴死角
         const k = Math.floor(i / 300) % 2 === 0 ? 1 : -1
-        Physics.step(st, cells, p.cols, p.rows, tx * k, ty * k)
+        Physics.step(st, collisionIndex, p.cols, p.rows, tx * k, ty * k)
         assert.ok(Number.isFinite(st.x) && Number.isFinite(st.y) && Number.isFinite(st.vx) && Number.isFinite(st.vy), 'NaN/Infinity')
         const d = Physics.minWallDistance(st, cells, p.cols, p.rows)
         assert.ok(d >= R - TOL, `${name} seed=${seed} tilt=(${tx},${ty}) step=${i}: 球进入墙内 dist=${d.toFixed(4)} at (${st.x.toFixed(3)},${st.y.toFixed(3)})`)

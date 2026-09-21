@@ -6,6 +6,8 @@ import storage from '@system.storage'
 import vibrator from '@system.vibrator'
 import Handshake from './utils/handshake.js'
 import { OFFICIAL } from './common/levels.js'
+import SlotStore from './common/slot-store.js'
+import MazeSync from './common/maze-sync.js'
 
 export default {
   data: {
@@ -19,6 +21,8 @@ export default {
 
   onCreate() {
     const app = this
+    this.slotStore = new SlotStore()
+    this.slotStore.init()
     storage.get({
       key: 'settings_vibrate',
       success(v) {
@@ -42,10 +46,18 @@ export default {
     })
     try {
       globalThis.conn = new Handshake()
+      MazeSync.store = this.slotStore
+      this.syncModule = globalThis.conn.register(MazeSync)
     } catch (e) {
       console.log('[maze] interconnect 不可用: ' + e)
       globalThis.conn = null
     }
+  },
+
+  onDestroy() {
+    if (this.syncModule) this.syncModule.destroy()
+    this.syncModule = null
+    MazeSync.store = null
   },
 
   /** 按钮点击反馈：开启时短震 */

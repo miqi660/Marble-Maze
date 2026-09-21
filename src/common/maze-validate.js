@@ -19,9 +19,9 @@
   }
 
   /**
-   * 校验 put 载荷。返回 { ok, message, level }，level 为剥离 crc 且带 render 的完整关卡
+   * 校验存储精简体；prepare=false 只检查结构，不生成渲染数据。
    */
-  function validateStoredLevel(level) {
+  function validateStoredLevel(level, prepare) {
     function fail(msg) {
       return { ok: false, message: msg, level: null };
     }
@@ -45,16 +45,21 @@
     var bytes = MazeCore.utf8Bytes(text);
     if (bytes.length > LIMITS.maxBytes) return fail('payload too large');
 
-    var decoded = MazeCore.decodeCells(cells);
+    return { ok: true, message: '', level: prepare === false ? null : prepareLevel(slim), slim: slim, payloadBytes: bytes.length };
+  }
+
+  /** 仅用于已经通过结构校验的精简体；每个缓存版本至多生成一次。 */
+  function prepareLevel(slim) {
+    var decoded = MazeCore.decodeCells(slim.cells);
     var full = {};
     for (var k in slim) full[k] = slim[k];
-    full.render = MazeCore.compileRuns(decoded, cols, rows);
-    return { ok: true, message: '', level: full, slim: slim, payloadBytes: bytes.length };
+    full.render = MazeCore.compileRuns(decoded, slim.cols, slim.rows);
+    return full;
   }
 
   /** 同步输入额外验证传输 CRC；本地精简体没有 CRC。 */
-  function validateLevel(level) {
-    var result = validateStoredLevel(level);
+  function validateLevel(level, prepare) {
+    var result = validateStoredLevel(level, false);
     if (!result.ok) return result;
     if (typeof level.crc !== 'string' || !/^[0-9a-fA-F]{8}$/.test(level.crc)) {
       return { ok: false, message: 'bad crc format', level: null };
@@ -62,6 +67,7 @@
     if (computeCrc(result.slim) !== level.crc.toUpperCase()) {
       return { ok: false, message: 'crc mismatch', level: null };
     }
+    if (prepare !== false) result.level = prepareLevel(result.slim);
     return result;
   }
 
@@ -72,5 +78,5 @@
     return crc;
   }
 
-  return { LIMITS: LIMITS, stripCrc: stripCrc, validateLevel: validateLevel, validateStoredLevel: validateStoredLevel, computeCrc: computeCrc };
+  return { LIMITS: LIMITS, stripCrc: stripCrc, validateLevel: validateLevel, validateStoredLevel: validateStoredLevel, prepareLevel: prepareLevel, computeCrc: computeCrc };
 });

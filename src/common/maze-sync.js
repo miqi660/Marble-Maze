@@ -2,21 +2,20 @@
  * MazeSync：手环端 maze 消息模块（put / list / clear）
  * 通过 globalThis.conn.register(MazeSync) 注册；tag 固定为 'maze'
  */
-import storage from '@system.storage'
 import { interconnModule } from '../utils/interconn.js'
 import MazeValidate from './maze-validate.js'
-import { SLOT_KEYS } from './levels.js'
 
 const ACK_TIMEOUT = 8000
 
 export default class MazeSync extends interconnModule {
   static name = 'maze'
 
-  /** 收到 put 成功后的回调，由 levels 页设置：(slot, slim) => void */
-  static onUpdate = null
+  /** 注册前由 App 注入唯一槽位缓存。 */
+  static store = null
 
   constructor({ send, addListener, removeListener }) {
     super()
+    this.store = MazeSync.store
     this._send = send
     this._removeListener = removeListener
     addListener((payload) => this.onMessage(payload))
@@ -24,6 +23,7 @@ export default class MazeSync extends interconnModule {
 
   /** 发送并在 ACK_TIMEOUT 内放弃等待 */
   reply(payload) {
+    if (this.destroyed) return
     let done = false
     const timer = setTimeout(() => {
       done = true
@@ -54,46 +54,25 @@ export default class MazeSync extends interconnModule {
       this.reply({ type: 'ack', slot: String(payload.slot || ''), ok: false, message: 'bad slot' })
       return
     }
-    const r = MazeValidate.validateLevel(payload.level)
+    const r = MazeValidate.validateLevel(payload.level, false)
     if (!r.ok) {
       this.reply({ type: 'ack', slot, ok: false, message: r.message })
       return
     }
-    // 只存精简体：不含 render、不含 crc
-    storage.set({
-      key: SLOT_KEYS[slot],
-      value: JSON.stringify(r.slim),
-      success: () => {
-        this.reply({ type: 'ack', slot, ok: true, message: '' })
-        if (typeof MazeSync.onUpdate === 'function') MazeSync.onUpdate(slot, r.slim)
-      },
-      fail: () => {
-        this.reply({ type: 'ack', slot, ok: false, message: 'storage write failed' })
-      }
+    this.store.saveValidated(slot, r).then((ok) => {
+      this.reply({ type: 'ack', slot, ok, message: ok ? '' : 'storage write failed' })
     })
   }
 
   handleList() {
-    const slots = []
-    const keys = ['a', 'b']
-    let pending = keys.length
-    const finish = () => {
-      if (--pending === 0) this.reply({ type: 'list', slots })
-    }
-    keys.forEach((slot) => {
-      storage.get({
-        key: SLOT_KEYS[slot],
-        success: (v) => {
-          try {
-            if (v) {
-              const s = JSON.parse(v)
-              slots.push({ slot, id: s.id || '', name: s.name || '', cols: s.cols, rows: s.rows })
-            }
-          } catch (e) {}
-          finish()
-        },
-        fail: finish
+    this.store.init().then(() => {
+      const slots = []
+      const keys = ['a', 'b']
+      keys.forEach((slot) => {
+        const s = this.store.get(slot)
+        if (s) slots.push({ slot, id: s.id || '', name: s.name || '', cols: s.cols, rows: s.rows })
       })
+      this.reply({ type: 'list', slots })
     })
   }
 
@@ -103,17 +82,13 @@ export default class MazeSync extends interconnModule {
       this.reply({ type: 'ack', slot: '', ok: false, message: 'bad slot' })
       return
     }
-    storage.delete({
-      key: SLOT_KEYS[slot],
-      success: () => {
-        this.reply({ type: 'ack', slot, ok: true, message: 'cleared' })
-        if (typeof MazeSync.onUpdate === 'function') MazeSync.onUpdate(slot, null)
-      },
-      fail: () => this.reply({ type: 'ack', slot, ok: false, message: 'storage delete failed' })
+    this.store.clear(slot).then((ok) => {
+      this.reply({ type: 'ack', slot, ok, message: ok ? 'cleared' : 'storage delete failed' })
     })
   }
 
   destroy() {
+    this.destroyed = true
     this._removeListener && this._removeListener()
   }
 }

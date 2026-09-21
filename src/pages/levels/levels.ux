@@ -3,9 +3,9 @@
 <import name="dots" src="../../common/ui/dots.ux"></import>
 
 <template>
-  <swiper class="swiper" index="{{ pageIndex }}" loop="false" indicator="false" @change="onSwipe">
+  <stack class="page" @touchstart="onTouchStart" @touchend="onTouchEnd">
     <!-- 页 1：Official -->
-    <stack class="page" @swipe="onOfficialSwipe">
+    <stack if="{{ pageIndex === 0 }}" class="page">
       <div class="abs" style="left: 63px; top: 48px">
         <eyebrow label="LEVELS" width="66" height="24"></eyebrow>
       </div>
@@ -33,7 +33,7 @@
 
     <!-- 页 2/3：Custom A / B -->
     <block for="{{ (ci, slot) in slots }}">
-      <stack class="page">
+      <stack if="{{ pageIndex === ci + 1 }}" class="page">
         <div class="abs" style="left: 55px; top: 48px">
           <eyebrow label="{{ slot.eyebrow }}" width="82" height="24"></eyebrow>
         </div>
@@ -50,22 +50,22 @@
           <text class="big-meta">{{ slot.level ? slot.diffLabel : '手机 App 同步或本地生成' }}</text>
         </div>
 
-        <div class="abs" style="left: 35px; top: 290px">
-          <btn-hard label="{{ slot.level ? '开始' : '随机生成' }}" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18" @press="onSlotButton(slot.key)"></btn-hard>
+        <div class="abs" style="left: 35px; top: 290px" @click="onSlotButton(slot.key)">
+          <btn-hard label="{{ slot.level ? '开始' : '随机生成' }}" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18"></btn-hard>
         </div>
-        <div class="abs" style="left: 35px; top: 352px" show="{{ !!slot.level }}">
-          <btn-hard label="重新生成" width="122" height="36" bg="#FFFFFF" shadow="#111111" font-size="14" @press="regenerate(slot.key)"></btn-hard>
+        <div class="abs" style="left: 35px; top: 352px" show="{{ !!slot.level }}" @click="regenerate(slot.key)">
+          <btn-hard label="重新生成" width="122" height="36" bg="#FFFFFF" shadow="#111111" font-size="14"></btn-hard>
         </div>
         <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
       </stack>
     </block>
-  </swiper>
+  </stack>
 </template>
 
 <script>
 import router from '@system.router'
-import { OFFICIAL, DIFFICULTY_LABEL, loadSlot, saveSlot, randomCustom } from '../../common/levels.js'
-import MazeSync from '../../common/maze-sync.js'
+import { OFFICIAL, DIFFICULTY_LABEL, randomCustom } from '../../common/levels.js'
+import { returnToPage } from '../../common/navigation.js'
 
 const DIFF_SHORT = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', expert: 'EXPERT' }
 
@@ -80,34 +80,34 @@ export default {
       { key: 'b', eyebrow: 'CUSTOM B', level: null, diffLabel: '' }
     ]
   },
-  syncModule: null,
 
   onInit() {
-    this.$app.$def.progressReady.then(() => {
-      if (this.$valid) this.buildCards()
-    })
+    this.active = false
+    this.buildCards()
+    this.refreshSlots()
   },
 
   onShow() {
-    this.$app.$def.progressReady.then(() => {
-      if (this.$valid) this.buildCards()
-    })
+    this.active = true
+    this.leaving = false
+    this.buildCards()
     this.refreshSlots()
-    // 注册 maze 消息模块；put 成功后刷新 Custom 卡片
-    MazeSync.onUpdate = (slot, slim) => this.applySlot(slot, slim)
-    try {
-      if (globalThis.conn && !this.syncModule) this.syncModule = globalThis.conn.register(MazeSync)
-    } catch (e) {
-      console.log('[maze] register 失败: ' + e)
+    if (!this.unsubscribeSlots) {
+      this.unsubscribeSlots = this.$app.$def.slotStore.subscribe((slot, slim) => this.applySlot(slot, slim))
     }
+    this.$app.$def.progressReady.then(() => {
+      if (this.active) this.buildCards()
+    })
+    this.$app.$def.slotStore.ready.then(() => {
+      if (this.active) this.refreshSlots()
+    })
   },
 
   onHide() {
-    MazeSync.onUpdate = null
-    if (this.syncModule) {
-      this.syncModule.destroy()
-      this.syncModule = null
-    }
+    this.active = false
+    this.touchStart = null
+    if (this.unsubscribeSlots) this.unsubscribeSlots()
+    this.unsubscribeSlots = null
   },
 
   onDestroy() {
@@ -117,6 +117,7 @@ export default {
   /** Official 网格：2 列，卡 74×68，列距 13，行距 8，@top148，整体居中（74*2+13=161 → left 15） */
   buildCards() {
     const progress = this.$app.$def.progress
+    if (this.officialCards.length && this.progress === progress) return
     this.progress = progress
     const cards = []
     for (let i = 0; i < OFFICIAL.length; i++) {
@@ -136,37 +137,63 @@ export default {
   },
 
   refreshSlots() {
-    loadSlot('a', (slim) => this.applySlot('a', slim))
-    loadSlot('b', (slim) => this.applySlot('b', slim))
+    this.applySlot('a', this.$app.$def.slotStore.get('a'))
+    this.applySlot('b', this.$app.$def.slotStore.get('b'))
   },
 
   applySlot(slot, slim) {
     const idx = slot === 'a' ? 0 : 1
     const s = this.slots[idx]
+    if (s.level === slim) return
     s.level = slim
     s.diffLabel = slim ? DIFFICULTY_LABEL[slim.difficulty] || '自定义' : ''
     this.slots.splice(idx, 1, s)
   },
 
-  onSwipe(e) {
-    this.pageIndex = e.index
+  /** 单页手势只改变索引，不挂载隐藏的 Custom 页面。 */
+  onTouchStart(e) {
+    const touch = e.touches && e.touches[0]
+    this.touchStart = touch ? { x: touch.clientX, y: touch.clientY, index: this.pageIndex } : null
   },
 
-  /** Official 页右滑返回 Home */
-  onOfficialSwipe(e) {
-    if (this.pageIndex === 0 && e.direction === 'right') router.back()
+  onTouchEnd(e) {
+    const start = this.touchStart
+    this.touchStart = null
+    const touch = e.changedTouches && e.changedTouches[0]
+    if (!start || !touch || this.leaving) return
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy) * 1.5) return
+    if (dx > 0) {
+      if (start.index === 0) this.goHome()
+      else this.pageIndex = start.index - 1
+    } else this.pageIndex = Math.min(2, start.index + 1)
+  },
+
+  goHome() {
+    if (this.leaving) return
+    this.leaving = true
+    returnToPage('/pages/home')
+  },
+
+  onBackPress() {
+    if (this.pageIndex > 0) this.pageIndex--
+    else this.goHome()
+    return true
   },
 
   playOfficial(i) {
-    if (!this.officialCards[i] || this.officialCards[i].locked) return
+    if (this.leaving || !this.officialCards[i] || this.officialCards[i].locked) return
+    this.leaving = true
     this.$app.$def.feedback()
     router.push({ uri: '/pages/game', params: { pack: 'official', index: String(i) } })
   },
 
   playCustom(slot, feedbackDone) {
     const s = this.slots[slot === 'a' ? 0 : 1]
-    if (!s.level) return
-    if (!feedbackDone) this.$app.$def.feedback()
+    if (this.leaving || !s.level) return
+    this.leaving = true
+    if (feedbackDone !== true) this.$app.$def.feedback()
     router.push({ uri: '/pages/game', params: { pack: 'custom_' + slot, index: '0' } })
   },
 
@@ -180,19 +207,12 @@ export default {
   regenerate(slot) {
     const diffs = ['easy', 'normal', 'hard', 'expert']
     const level = randomCustom(diffs[Math.floor(Math.random() * diffs.length)], slot)
-    saveSlot(slot, level, (ok) => {
-      if (ok) loadSlot(slot, (slim) => this.applySlot(slot, slim))
-    })
+    this.$app.$def.slotStore.save(slot, level)
   }
 }
 </script>
 
 <style>
-.swiper {
-  width: 192px;
-  height: 490px;
-  background-color: #f3efe7;
-}
 .page {
   width: 192px;
   height: 490px;
