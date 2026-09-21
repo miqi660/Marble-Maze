@@ -4,23 +4,22 @@
 <template>
   <stack class="page">
     <!-- HUD：左 LV 标签（粉阴影），右计时（黄阴影） -->
-    <div class="abs hud-shadow" style="left: 12px; top: 52px; background-color: #ff5b8d; width: 80px"></div>
-    <div class="abs hud lv" style="left: 8px; top: 48px">
+    <div class="abs hud-shadow" style="left: 12px; top: 61px; background-color: #ff5b8d; width: 80px"></div>
+    <div class="abs hud lv" style="left: 8px; top: 57px">
       <text class="hud-text lv-text">{{ levelName }}</text>
     </div>
-    <div class="abs hud-shadow" style="left: 102px; top: 52px; background-color: #ffd323; width: 86px"></div>
-    <div class="abs hud timer" style="left: 98px; top: 48px">
+    <div class="abs hud-shadow" style="left: 102px; top: 61px; background-color: #ffd323; width: 86px"></div>
+    <div class="abs hud timer" style="left: 98px; top: 57px">
       <text class="hud-text timer-text">{{ timeText }}</text>
     </div>
 
     <!-- 迷宫板：阴影 + 板体 -->
-    <div class="abs board-shadow" style="left: 11px; top: 101px"></div>
-    <div class="abs board" style="left: 6px; top: 96px"></div>
+    <div class="abs board-shadow" style="left: {{ shadowLeft }}px; top: 105px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
+    <div class="abs board" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
 
     <!-- 板内区域：静态墙段；球使用兼容的位置样式并限制为 25Hz 更新 -->
-    <stack class="abs inner" style="left: 10px; top: 100px">
-      <div class="abs start-cell" style="left: {{ startLeft }}px; top: {{ startTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
-      <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ goalSize }}px; height: {{ goalSize }}px; border-radius: {{ goalRadius }}px"></div>
+    <stack class="abs inner" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px">
+      <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
       <div class="abs wall" for="{{ walls }}" style="left: {{ $item.l }}px; top: {{ $item.t }}px; width: {{ $item.w }}px; height: {{ $item.h }}px"></div>
       <div class="abs ball" style="left: {{ ballLeft }}px; top: {{ ballTop }}px; width: {{ ballSize }}px; height: {{ ballSize }}px; border-radius: {{ ballRadius }}px; border-width: {{ ballBorder }}px"></div>
     </stack>
@@ -41,9 +40,10 @@ import { returnToPage } from '../../common/navigation.js'
 
 /** 加速度低通滤波系数 */
 const LPF = 0.35
-/** 板内径 */
-const INNER_W = 172
-const INNER_H = 272
+/** 宽度上限保留左右各 4px；高度优先避开现有重来按钮。 */
+const INNER_W = 184
+/** 按钮 top 395 - 迷宫 top 100 - 阴影 5 - 间隔 4。 */
+const INNER_H = 286
 
 export default {
   protected: {
@@ -54,12 +54,12 @@ export default {
     levelName: 'LV 1',
     timeText: '00.0',
     cellPx: 20,
-    startLeft: 0,
-    startTop: 0,
+    boardWidth: 0,
+    boardHeight: 0,
+    boardLeft: 96,
+    shadowLeft: 101,
     goalLeft: 0,
     goalTop: 0,
-    goalSize: 10,
-    goalRadius: 5,
     walls: [],
     ballLeft: 0,
     ballTop: 0,
@@ -108,10 +108,14 @@ export default {
     this.levelName = level.name || 'CUSTOM'
     const cols = level.cols
     const rows = level.rows
-    const cellPx = Math.floor(Math.min(INNER_W / cols, INNER_H / rows))
+    const cellPx = Math.min(INNER_W / cols, INNER_H / rows)
     this.cellPx = cellPx
-    this.offX = Math.floor((INNER_W - cols * cellPx) / 2)
-    this.offY = Math.floor((INNER_H - rows * cellPx) / 2)
+    this.boardWidth = cols * cellPx
+    this.boardHeight = rows * cellPx
+    this.boardLeft = (192 - this.boardWidth) / 2
+    this.shadowLeft = this.boardLeft + 5
+    this.offX = 0
+    this.offY = 0
     const thick = Math.min(4, Math.max(2, Math.round(cellPx * 0.2)))
     const half = thick / 2
 
@@ -119,6 +123,16 @@ export default {
     const h = level.render.h
     const v = level.render.v
     for (let i = 0; i < h.length; i += 3) {
+      const x = h[i]
+      const y = h[i + 1]
+      const len = h[i + 2]
+      const isTop = x === 0 && y === 0 && len === cols
+      const isBottom = x === 0 && y === rows && len === cols
+      // 上下外围墙完整内收，并覆盖四角；内部墙仍按原网格坐标绘制。
+      if (isTop || isBottom) {
+        walls.push({ l: 0, t: isTop ? 0 : this.boardHeight - thick, w: this.boardWidth, h: thick })
+        continue
+      }
       walls.push({
         l: this.offX + h[i] * cellPx - half,
         t: this.offY + h[i + 1] * cellPx - half,
@@ -127,6 +141,16 @@ export default {
       })
     }
     for (let i = 0; i < v.length; i += 3) {
+      const x = v[i]
+      const y = v[i + 1]
+      const len = v[i + 2]
+      const isLeft = x === 0 && y === 0 && len === rows
+      const isRight = x === cols && y === 0 && len === rows
+      // 左右外围墙完整落在区域内部，两端与上下墙相接而不重复覆盖四角。
+      if (isLeft || isRight) {
+        walls.push({ l: isLeft ? 0 : this.boardWidth - thick, t: thick, w: thick, h: this.boardHeight - 2 * thick })
+        continue
+      }
       walls.push({
         l: this.offX + v[i] * cellPx - half,
         t: this.offY + v[i + 1] * cellPx - half,
@@ -136,13 +160,8 @@ export default {
     }
     this.walls = walls
 
-    this.startLeft = this.offX + (level.start % cols) * cellPx
-    this.startTop = this.offY + Math.floor(level.start / cols) * cellPx
-    const goalSize = Math.round(0.5 * cellPx)
-    this.goalSize = goalSize
-    this.goalRadius = Math.ceil(goalSize / 2)
-    this.goalLeft = this.offX + (level.goal % cols) * cellPx + Math.round((cellPx - goalSize) / 2)
-    this.goalTop = this.offY + Math.floor(level.goal / cols) * cellPx + Math.round((cellPx - goalSize) / 2)
+    this.goalLeft = this.offX + (level.goal % cols) * cellPx
+    this.goalTop = this.offY + Math.floor(level.goal / cols) * cellPx
 
     const ballSize = Math.round(0.56 * cellPx)
     this.ballSize = ballSize
@@ -329,26 +348,13 @@ export default {
   color: #111111;
 }
 .board-shadow {
-  width: 180px;
-  height: 280px;
   background-color: #ff5b8d;
 }
 .board {
-  width: 180px;
-  height: 280px;
   background-color: #ffffff;
-  border: 4px solid #111111;
-}
-.inner {
-  width: 172px;
-  height: 272px;
-}
-.start-cell {
-  background-color: #fff3b0;
 }
 .goal {
-  background-color: #ff5b8d;
-  border: 2px solid #111111;
+  background-color: #FF5B8D;
 }
 .wall {
   background-color: #111111;

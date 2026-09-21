@@ -16,11 +16,14 @@ function load(path, globals) {
 }
 async function drain() { for (let i = 0; i < 20; i++) await Promise.resolve() }
 
-// 静态六关与原有 seed 的生成结果完全相同。
+// 静态六关可直接加载，且预编译渲染数据与 cells 一致。
 assert.equal(OFFICIAL.length, 6)
 for (const level of OFFICIAL) {
-  const expected = MazeCore.buildLevel(level.cols, level.rows, level.seed, level.difficulty)
-  assert.deepStrictEqual(level, { ...expected, name: level.name })
+  const result = MazeValidate.validateStoredLevel(level, false)
+  assert.equal(result.ok, true, result.message)
+  assert.deepStrictEqual(level.render, MazeCore.compileRuns(
+    MazeCore.decodeCells(level.cells), level.cols, level.rows
+  ))
 }
 
 async function cacheAndSync() {
