@@ -1,0 +1,121 @@
+<import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
+<import name="eyebrow" src="../../common/ui/eyebrow.ux"></import>
+<import name="dots" src="../../common/ui/dots.ux"></import>
+
+<template>
+  <stack class="page">
+    <!-- LEVEL 01 标签 66×24 @top50 -->
+    <div class="abs" style="left: 63px; top: 50px">
+      <eyebrow label="{{ levelLabel }}" width="66" height="24"></eyebrow>
+    </div>
+
+    <!-- “弹珠” 50px，黄硬阴影（下层黄色偏移 5px） -->
+    <text class="abs title title-shadow" style="left: 5px; top: 89px">弹珠</text>
+    <text class="abs title" style="left: 0px; top: 84px">弹珠</text>
+
+    <!-- “迷宫” 黄块黑边 118×54 @top145 -->
+    <div class="abs block" style="left: 37px; top: 145px">
+      <text class="block-txt">迷宫</text>
+    </div>
+
+    <!-- 白色提示卡 112×50 粉阴影 @top214 -->
+    <div class="abs card-shadow" style="left: 44px; top: 218px"></div>
+    <div class="abs card" style="left: 40px; top: 214px">
+      <text class="card-txt">倾斜手环</text>
+      <text class="card-txt">滚球到终点</text>
+    </div>
+
+    <!-- “开始” 160×58 黄底黑阴影 @top286 -->
+    <div class="abs" style="left: 16px; top: 286px">
+      <btn-hard label="开始" width="160" height="58" bg="#FFD323" shadow="#111111" font-size="24" @press="goLevels"></btn-hard>
+    </div>
+    <!-- “设置” 144×44 白底粉阴影 @top356 -->
+    <div class="abs" style="left: 24px; top: 356px">
+      <btn-hard label="设置" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18" @press="goSettings"></btn-hard>
+    </div>
+
+    <!-- 三色点 @top429，横线 @top451 -->
+    <div class="abs" style="left: 0px; top: 429px">
+      <dots gap="16"></dots>
+    </div>
+  </stack>
+</template>
+
+<script>
+import router from '@system.router'
+import { OFFICIAL } from '../../common/levels.js'
+
+export default {
+  private: {
+    levelLabel: 'LEVEL 01'
+  },
+  onShow() {
+    this.$app.$def.progressReady.then(() => {
+      if (!this.$valid) return
+      const n = Math.min(this.$app.$def.progress + 1, OFFICIAL.length)
+      this.levelLabel = 'LEVEL ' + (n < 10 ? '0' + n : n)
+    })
+  },
+  goLevels() {
+    router.push({ uri: '/pages/levels' })
+  },
+  goSettings() {
+    router.push({ uri: '/pages/settings' })
+  }
+}
+</script>
+
+<style>
+.page {
+  width: 192px;
+  height: 490px;
+  background-color: #f3efe7;
+}
+.abs {
+  position: absolute;
+}
+.title {
+  width: 192px;
+  height: 56px;
+  font-size: 50px;
+  font-weight: 900;
+  color: #111111;
+  text-align: center;
+}
+.title-shadow {
+  color: #ffd323;
+}
+.block {
+  width: 118px;
+  height: 54px;
+  background-color: #ffd323;
+  border: 3px solid #111111;
+  justify-content: center;
+  align-items: center;
+}
+.block-txt {
+  font-size: 34px;
+  font-weight: 900;
+  color: #111111;
+}
+.card-shadow {
+  width: 112px;
+  height: 50px;
+  background-color: #ff5b8d;
+}
+.card {
+  width: 112px;
+  height: 50px;
+  background-color: #ffffff;
+  border: 3px solid #111111;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.card-txt {
+  font-size: 13px;
+  font-weight: 900;
+  color: #66615b;
+  text-align: center;
+}
+</style>

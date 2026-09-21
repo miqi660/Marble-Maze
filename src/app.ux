@@ -1,0 +1,75 @@
+<script>
+/**
+ * 全局：震动设置缓存、关卡包定义、穿戴互联握手实例
+ */
+import storage from '@system.storage'
+import vibrator from '@system.vibrator'
+import Handshake from './utils/handshake.js'
+import { OFFICIAL } from './common/levels.js'
+
+export default {
+  data: {
+    /** 按钮震动反馈开关（内存缓存，settings 页修改时同步写 storage） */
+    vibrateOn: true,
+    /** 已通关的 Official 关卡数（进度） */
+    progress: 0,
+    /** 关卡包定义 */
+    PACKS: { official: 'Official', custom_a: 'Custom A', custom_b: 'Custom B' }
+  },
+
+  onCreate() {
+    const app = this
+    storage.get({
+      key: 'settings_vibrate',
+      success(v) {
+        if (v === '0') app.vibrateOn = false
+      },
+      fail() {}
+    })
+    this.progressReady = new Promise((resolve) => {
+      storage.get({
+        key: 'progress',
+        success(v) {
+          const n = parseInt(v, 10)
+          app.progress = Math.max(0, Math.min(OFFICIAL.length, isNaN(n) ? 0 : n))
+          if (String(app.progress) !== String(v)) {
+            storage.set({ key: 'progress', value: String(app.progress), success() {}, fail() {} })
+          }
+          resolve()
+        },
+        fail() { resolve() }
+      })
+    })
+    try {
+      globalThis.conn = new Handshake()
+    } catch (e) {
+      console.log('[maze] interconnect 不可用: ' + e)
+      globalThis.conn = null
+    }
+  },
+
+  /** 按钮点击反馈：开启时短震 */
+  feedback() {
+    if (!this.vibrateOn) return
+    try {
+      vibrator.vibrate({ mode: 'short' })
+    } catch (e) {}
+  },
+
+  setVibrate(on) {
+    this.vibrateOn = !!on
+    storage.set({ key: 'settings_vibrate', value: on ? '1' : '0', success() {}, fail() {} })
+  },
+
+  /** 记录通关进度（Official 关卡 index 从 0 起） */
+  markCleared(index) {
+    this.progressReady.then(() => {
+      const next = Math.max(0, Math.min(OFFICIAL.length, index + 1))
+      if (next > this.progress) {
+        this.progress = next
+        storage.set({ key: 'progress', value: String(this.progress), success() {}, fail() {} })
+      }
+    })
+  }
+}
+</script>

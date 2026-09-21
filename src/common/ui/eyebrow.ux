@@ -1,0 +1,32 @@
+<!-- eyebrow：黑底白字小标签 -->
+<template>
+  <div class="eyebrow" style="width: {{ width }}px; height: {{ height }}px">
+    <text class="txt">{{ label }}</text>
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    label: { default: '' },
+    width: { default: 66 },
+    height: { default: 24 }
+  }
+}
+</script>
+
+<style>
+.eyebrow {
+  background-color: #111111;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+.txt {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+  text-align: center;
+}
+</style>

@@ -1,0 +1,33 @@
+{
+  "package": "com.MarbleMaze.watch",
+  "name": "弹珠迷宫",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1100,
+  "icon": "/common/logo.png",
+  "deviceTypeList": ["watch"],
+  "features": [
+    { "name": "system.router" },
+    { "name": "system.sensor" },
+    { "name": "system.vibrator" },
+    { "name": "system.storage" },
+    { "name": "system.device" },
+    { "name": "system.interconnect" },
+    { "name": "system.app" }
+  ],
+  "permissions": [{ "origin": "hapjs.permission.DEVICE_INFO" }],
+  "config": {
+    "logLevel": "log",
+    "designWidth": 192
+  },
+  "router": {
+    "entry": "pages/home",
+    "pages": {
+      "pages/home": { "component": "home" },
+      "pages/levels": { "component": "levels" },
+      "pages/game": { "component": "game" },
+      "pages/complete": { "component": "complete" },
+      "pages/settings": { "component": "settings" }
+    }
+  }
+}

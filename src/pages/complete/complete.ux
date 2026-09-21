@@ -1,0 +1,149 @@
+<import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
+<import name="eyebrow" src="../../common/ui/eyebrow.ux"></import>
+
+<template>
+  <stack class="page">
+    <div class="abs row" style="left: 0px; top: 50px">
+      <eyebrow label="{{ levelName }}" width="66" height="24"></eyebrow>
+    </div>
+
+    <!-- 标题“通关!”：黄色阴影层偏移 5px -->
+    <text class="abs title title-shadow" style="left: 5px; top: 99px">通关!</text>
+    <text class="abs title" style="left: 0px; top: 94px">通关!</text>
+
+    <!-- 成功图形：粉环 82 + 黄球 42 + ✓ -->
+    <div class="abs ring-shadow" style="left: 60px; top: 169px"></div>
+    <div class="abs ring" style="left: 55px; top: 164px">
+      <div class="ball">
+        <text class="check">✓</text>
+      </div>
+    </div>
+
+    <!-- 结果卡 -->
+    <div class="abs card-shadow" style="left: 26px; top: 282px"></div>
+    <div class="abs card" style="left: 22px; top: 278px">
+      <text class="card-label">用时</text>
+      <text class="card-value">{{ time }}s</text>
+    </div>
+
+    <div class="abs" style="left: 16px; top: 344px">
+      <btn-hard label="{{ hasNext ? '下一关' : '重玩' }}" width="160" height="58" bg="#FFD323" shadow="#FF5B8D" font-size="22" @press="onNext"></btn-hard>
+    </div>
+    <div class="abs" style="left: 24px; top: 414px">
+      <btn-hard label="返回关卡" width="144" height="40" bg="#FFFFFF" shadow="#FFD323" font-size="16" @press="onBack"></btn-hard>
+    </div>
+  </stack>
+</template>
+
+<script>
+import router from '@system.router'
+import { OFFICIAL } from '../../common/levels.js'
+
+export default {
+  protected: {
+    pack: 'official',
+    index: 0,
+    time: '00.0'
+  },
+  private: {
+    levelName: 'LEVEL',
+    hasNext: false
+  },
+  onInit() {
+    this.index = parseInt(this.index, 10) || 0
+    if (this.pack === 'official') {
+      this.levelName = 'LEVEL ' + (this.index + 1)
+      this.hasNext = this.index < OFFICIAL.length - 1
+    } else {
+      this.levelName = this.pack === 'custom_b' ? 'CUSTOM B' : 'CUSTOM A'
+      this.hasNext = false
+    }
+  },
+  onNext() {
+    const next = this.hasNext ? this.index + 1 : this.index
+    router.replace({ uri: '/pages/game', params: { pack: this.pack, index: String(next) } })
+  },
+  onBack() {
+    router.back({ path: '/pages/levels' })
+  }
+}
+</script>
+
+<style>
+.page {
+  width: 192px;
+  height: 490px;
+  background-color: #f3efe7;
+}
+.abs {
+  position: absolute;
+}
+.row {
+  width: 192px;
+  justify-content: center;
+}
+.title {
+  width: 192px;
+  font-size: 52px;
+  font-weight: 900;
+  color: #111111;
+  text-align: center;
+}
+.title-shadow {
+  color: #ffd323;
+}
+.ring-shadow {
+  width: 82px;
+  height: 82px;
+  border-radius: 41px;
+  background-color: #111111;
+}
+.ring {
+  width: 82px;
+  height: 82px;
+  border-radius: 41px;
+  background-color: #ff5b8d;
+  border: 3px solid #111111;
+  justify-content: center;
+  align-items: center;
+}
+.ball {
+  width: 42px;
+  height: 42px;
+  border-radius: 21px;
+  background-color: #ffd323;
+  border: 3px solid #111111;
+  justify-content: center;
+  align-items: center;
+}
+.check {
+  font-size: 22px;
+  font-weight: 900;
+  color: #111111;
+}
+.card-shadow {
+  width: 148px;
+  height: 52px;
+  background-color: #ff5b8d;
+}
+.card {
+  width: 148px;
+  height: 52px;
+  background-color: #ffffff;
+  border: 3px solid #111111;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+.card-label {
+  font-size: 14px;
+  color: #66615b;
+  font-weight: 900;
+}
+.card-value {
+  font-size: 22px;
+  color: #111111;
+  font-weight: 900;
+}
+</style>

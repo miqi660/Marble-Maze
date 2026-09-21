@@ -1,0 +1,306 @@
+<import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
+<import name="eyebrow" src="../../common/ui/eyebrow.ux"></import>
+<import name="dots" src="../../common/ui/dots.ux"></import>
+
+<template>
+  <swiper class="swiper" index="{{ pageIndex }}" loop="false" indicator="false" @change="onSwipe">
+    <!-- 页 1：Official -->
+    <stack class="page" @swipe="onOfficialSwipe">
+      <div class="abs" style="left: 63px; top: 48px">
+        <eyebrow label="LEVELS" width="66" height="24"></eyebrow>
+      </div>
+      <text class="abs title title-shadow" style="left: 4px; top: 86px">选择关卡</text>
+      <text class="abs title" style="left: 0px; top: 82px">选择关卡</text>
+      <div class="abs bar" style="left: 43px; top: 117px"></div>
+
+      <!-- 2 列网格 @top148，卡片 74×68，列距 13，行距 8 -->
+      <block for="{{ (i, item) in officialCards }}">
+        <div class="abs shadow" show="{{ !item.locked }}" style="left: {{ item.left + 4 }}px; top: {{ item.top + 4 }}px; background-color: {{ item.selected ? '#FF5B8D' : '#111111' }}"></div>
+        <div class="abs card" style="left: {{ item.left }}px; top: {{ item.top }}px; background-color: {{ item.locked ? '#D9D4CC' : item.selected ? '#FFD323' : '#FFFFFF' }}" @click="playOfficial(i)">
+          <text class="card-no" style="color: {{ item.locked ? '#66615B' : '#111111' }}">{{ item.no }}</text>
+          <text class="card-diff">{{ item.locked ? '锁定' : item.diff }}</text>
+          <div class="check" show="{{ item.cleared }}"><text class="check-txt">✓</text></div>
+        </div>
+      </block>
+
+      <!-- 进度卡 156×36 @top395 -->
+      <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
+      <div class="abs prog" style="left: 18px; top: 395px">
+        <text class="prog-txt">已通关 {{ progress }} / {{ officialCount }}</text>
+      </div>
+      <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
+    </stack>
+
+    <!-- 页 2/3：Custom A / B -->
+    <block for="{{ (ci, slot) in slots }}">
+      <stack class="page">
+        <div class="abs" style="left: 55px; top: 48px">
+          <eyebrow label="{{ slot.eyebrow }}" width="82" height="24"></eyebrow>
+        </div>
+        <text class="abs title title-shadow" style="left: 4px; top: 86px">自定义</text>
+        <text class="abs title" style="left: 0px; top: 82px">自定义</text>
+        <div class="abs bar" style="left: 43px; top: 117px"></div>
+
+        <!-- 单张大卡 156×110 @top148 -->
+        <div class="abs big-shadow" style="left: 22px; top: 152px"></div>
+        <div class="abs big" style="left: 18px; top: 148px; background-color: {{ slot.level ? '#FFFFFF' : '#D9D4CC' }}" @click="playCustom(slot.key)">
+          <text class="big-state">{{ slot.level ? '已就绪' : '空槽位' }}</text>
+          <text class="big-name">{{ slot.level ? slot.level.name || slot.level.id || '自定义关卡' : '等待同步' }}</text>
+          <text class="big-meta" show="{{ !!slot.level }}">{{ slot.level ? slot.level.cols + ' × ' + slot.level.rows : '' }}</text>
+          <text class="big-meta">{{ slot.level ? slot.diffLabel : '手机 App 同步或本地生成' }}</text>
+        </div>
+
+        <div class="abs" style="left: 35px; top: 290px">
+          <btn-hard label="{{ slot.level ? '开始' : '随机生成' }}" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18" @press="onSlotButton(slot.key)"></btn-hard>
+        </div>
+        <div class="abs" style="left: 35px; top: 352px" show="{{ !!slot.level }}">
+          <btn-hard label="重新生成" width="122" height="36" bg="#FFFFFF" shadow="#111111" font-size="14" @press="regenerate(slot.key)"></btn-hard>
+        </div>
+        <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
+      </stack>
+    </block>
+  </swiper>
+</template>
+
+<script>
+import router from '@system.router'
+import { OFFICIAL, DIFFICULTY_LABEL, loadSlot, saveSlot, randomCustom } from '../../common/levels.js'
+import MazeSync from '../../common/maze-sync.js'
+
+const DIFF_SHORT = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', expert: 'EXPERT' }
+
+export default {
+  private: {
+    pageIndex: 0,
+    progress: 0,
+    officialCount: OFFICIAL.length,
+    officialCards: [],
+    slots: [
+      { key: 'a', eyebrow: 'CUSTOM A', level: null, diffLabel: '' },
+      { key: 'b', eyebrow: 'CUSTOM B', level: null, diffLabel: '' }
+    ]
+  },
+  syncModule: null,
+
+  onInit() {
+    this.$app.$def.progressReady.then(() => {
+      if (this.$valid) this.buildCards()
+    })
+  },
+
+  onShow() {
+    this.$app.$def.progressReady.then(() => {
+      if (this.$valid) this.buildCards()
+    })
+    this.refreshSlots()
+    // 注册 maze 消息模块；put 成功后刷新 Custom 卡片
+    MazeSync.onUpdate = (slot, slim) => this.applySlot(slot, slim)
+    try {
+      if (globalThis.conn && !this.syncModule) this.syncModule = globalThis.conn.register(MazeSync)
+    } catch (e) {
+      console.log('[maze] register 失败: ' + e)
+    }
+  },
+
+  onHide() {
+    MazeSync.onUpdate = null
+    if (this.syncModule) {
+      this.syncModule.destroy()
+      this.syncModule = null
+    }
+  },
+
+  onDestroy() {
+    this.onHide()
+  },
+
+  /** Official 网格：2 列，卡 74×68，列距 13，行距 8，@top148，整体居中（74*2+13=161 → left 15） */
+  buildCards() {
+    const progress = this.$app.$def.progress
+    this.progress = progress
+    const cards = []
+    for (let i = 0; i < OFFICIAL.length; i++) {
+      const col = i % 2
+      const row = Math.floor(i / 2)
+      cards.push({
+        no: String(i + 1),
+        diff: DIFF_SHORT[OFFICIAL[i].difficulty],
+        left: 15 + col * (74 + 13),
+        top: 148 + row * (68 + 8),
+        cleared: i < progress,
+        selected: i === Math.min(progress, OFFICIAL.length - 1),
+        locked: i > progress
+      })
+    }
+    this.officialCards = cards
+  },
+
+  refreshSlots() {
+    loadSlot('a', (slim) => this.applySlot('a', slim))
+    loadSlot('b', (slim) => this.applySlot('b', slim))
+  },
+
+  applySlot(slot, slim) {
+    const idx = slot === 'a' ? 0 : 1
+    const s = this.slots[idx]
+    s.level = slim
+    s.diffLabel = slim ? DIFFICULTY_LABEL[slim.difficulty] || '自定义' : ''
+    this.slots.splice(idx, 1, s)
+  },
+
+  onSwipe(e) {
+    this.pageIndex = e.index
+  },
+
+  /** Official 页右滑返回 Home */
+  onOfficialSwipe(e) {
+    if (this.pageIndex === 0 && e.direction === 'right') router.back()
+  },
+
+  playOfficial(i) {
+    if (!this.officialCards[i] || this.officialCards[i].locked) return
+    this.$app.$def.feedback()
+    router.push({ uri: '/pages/game', params: { pack: 'official', index: String(i) } })
+  },
+
+  playCustom(slot, feedbackDone) {
+    const s = this.slots[slot === 'a' ? 0 : 1]
+    if (!s.level) return
+    if (!feedbackDone) this.$app.$def.feedback()
+    router.push({ uri: '/pages/game', params: { pack: 'custom_' + slot, index: '0' } })
+  },
+
+  onSlotButton(slot) {
+    const s = this.slots[slot === 'a' ? 0 : 1]
+    if (s.level) this.playCustom(slot, true)
+    else this.regenerate(slot)
+  },
+
+  /** 本地随机生成一关并写回槽位 */
+  regenerate(slot) {
+    const diffs = ['easy', 'normal', 'hard', 'expert']
+    const level = randomCustom(diffs[Math.floor(Math.random() * diffs.length)], slot)
+    saveSlot(slot, level, (ok) => {
+      if (ok) loadSlot(slot, (slim) => this.applySlot(slot, slim))
+    })
+  }
+}
+</script>
+
+<style>
+.swiper {
+  width: 192px;
+  height: 490px;
+  background-color: #f3efe7;
+}
+.page {
+  width: 192px;
+  height: 490px;
+  background-color: #f3efe7;
+}
+.abs {
+  position: absolute;
+}
+.title {
+  width: 192px;
+  font-size: 33px;
+  font-weight: 900;
+  color: #111111;
+  text-align: center;
+}
+.title-shadow {
+  color: #ffd323;
+}
+.bar {
+  width: 106px;
+  height: 8px;
+  background-color: #ff5b8d;
+}
+.shadow {
+  width: 74px;
+  height: 68px;
+}
+.card {
+  width: 74px;
+  height: 68px;
+  border: 3px solid #111111;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.card-no {
+  font-size: 26px;
+  font-weight: 900;
+}
+.card-diff {
+  font-size: 10px;
+  font-weight: 900;
+  color: #66615b;
+  letter-spacing: 0.5px;
+}
+.check {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+  background-color: #111111;
+  justify-content: center;
+  align-items: center;
+}
+.check-txt {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+}
+.prog-shadow {
+  width: 156px;
+  height: 36px;
+  background-color: #ff5b8d;
+}
+.prog {
+  width: 156px;
+  height: 36px;
+  background-color: #ffffff;
+  border: 3px solid #111111;
+  justify-content: center;
+  align-items: center;
+}
+.prog-txt {
+  font-size: 14px;
+  font-weight: 900;
+  color: #111111;
+}
+.big-shadow {
+  width: 156px;
+  height: 110px;
+  background-color: #ff5b8d;
+}
+.big {
+  width: 156px;
+  height: 110px;
+  border: 3px solid #111111;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.big-state {
+  font-size: 11px;
+  font-weight: 900;
+  color: #ff5b8d;
+  letter-spacing: 0.9px;
+}
+.big-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: #111111;
+  margin-top: 4px;
+  text-align: center;
+}
+.big-meta {
+  font-size: 12px;
+  color: #66615b;
+  margin-top: 3px;
+  text-align: center;
+}
+</style>

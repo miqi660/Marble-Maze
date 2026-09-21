@@ -1,0 +1,336 @@
+<import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
+<import name="dots" src="../../common/ui/dots.ux"></import>
+
+<template>
+  <stack class="page">
+    <!-- HUD：左 LV 标签（粉阴影），右计时（黄阴影） -->
+    <div class="abs hud-shadow" style="left: 12px; top: 52px; background-color: #ff5b8d; width: 80px"></div>
+    <div class="abs hud lv" style="left: 8px; top: 48px">
+      <text class="hud-text lv-text">{{ levelName }}</text>
+    </div>
+    <div class="abs hud-shadow" style="left: 102px; top: 52px; background-color: #ffd323; width: 86px"></div>
+    <div class="abs hud timer" style="left: 98px; top: 48px">
+      <text class="hud-text timer-text">{{ timeText }}</text>
+    </div>
+
+    <!-- 迷宫板：阴影 + 板体 -->
+    <div class="abs board-shadow" style="left: 11px; top: 101px"></div>
+    <div class="abs board" style="left: 6px; top: 96px"></div>
+
+    <!-- 板内区域：起点格、终点、墙段（静态）、球（仅 left/top 变化） -->
+    <stack class="abs inner" style="left: 10px; top: 100px">
+      <div class="abs start-cell" style="left: {{ startLeft }}px; top: {{ startTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
+      <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ goalSize }}px; height: {{ goalSize }}px; border-radius: {{ goalRadius }}px"></div>
+      <div class="abs wall" for="{{ walls }}" style="left: {{ $item.l }}px; top: {{ $item.t }}px; width: {{ $item.w }}px; height: {{ $item.h }}px"></div>
+      <div class="abs ball" style="left: {{ ballLeft }}px; top: {{ ballTop }}px; width: {{ ballSize }}px; height: {{ ballSize }}px; border-radius: {{ ballRadius }}px; border-width: {{ ballBorder }}px"></div>
+    </stack>
+
+    <div class="abs" style="left: 35px; top: 395px">
+      <btn-hard label="重来" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18" @press="onRestart"></btn-hard>
+    </div>
+    <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
+  </stack>
+</template>
+
+<script>
+import router from '@system.router'
+import sensor from '@system.sensor'
+import MazeCore from '../../common/maze-core.js'
+import Physics from '../../common/physics.js'
+import { OFFICIAL, buildOfficial, loadSlot, inflate } from '../../common/levels.js'
+
+/** 加速度低通滤波系数 */
+const LPF = 0.35
+/** 板内径 */
+const INNER_W = 172
+const INNER_H = 272
+
+export default {
+  protected: {
+    pack: 'official',
+    index: 0
+  },
+  private: {
+    levelName: 'LV 1',
+    timeText: '00.0',
+    cellPx: 20,
+    startLeft: 0,
+    startTop: 0,
+    goalLeft: 0,
+    goalTop: 0,
+    goalSize: 10,
+    goalRadius: 5,
+    walls: [],
+    ballLeft: 0,
+    ballTop: 0,
+    ballSize: 11,
+    ballRadius: 6,
+    ballBorder: 2
+  },
+
+  onInit() {
+    this.index = Math.max(0, Math.min(OFFICIAL.length - 1, parseInt(this.index, 10) || 0))
+    // 非响应式运行时数据挂在 this 上，避免触发视图刷新
+    this.level = null
+    this.cells = null
+    this.state = null
+    this.ax = 0
+    this.ay = 0
+    this.elapsed = 0
+    this.accumulator = 0
+    this.lastTick = Date.now()
+    this.finished = false
+    this.timer = null
+    this.offX = 0
+    this.offY = 0
+    this.ready = false
+    this.disposed = false
+    if (this.pack === 'official') {
+      this.setupLevel(buildOfficial(this.index))
+    } else {
+      const slot = this.pack === 'custom_b' ? 'b' : 'a'
+      loadSlot(slot, (slim) => {
+        if (this.disposed) return
+        if (!slim) {
+          router.back()
+          return
+        }
+        this.setupLevel(inflate(slim))
+      })
+    }
+  },
+
+  /** 载入关卡：计算尺寸、生成静态墙段、放置球 */
+  setupLevel(level) {
+    this.level = level
+    this.cells = MazeCore.decodeCells(level.cells)
+    this.levelName = level.name || 'CUSTOM'
+    const cols = level.cols
+    const rows = level.rows
+    const cellPx = Math.floor(Math.min(INNER_W / cols, INNER_H / rows))
+    this.cellPx = cellPx
+    this.offX = Math.floor((INNER_W - cols * cellPx) / 2)
+    this.offY = Math.floor((INNER_H - rows * cellPx) / 2)
+    const thick = Math.min(4, Math.max(2, Math.round(cellPx * 0.2)))
+    const half = thick / 2
+
+    const walls = []
+    const h = level.render.h
+    const v = level.render.v
+    for (let i = 0; i < h.length; i += 3) {
+      walls.push({
+        l: this.offX + h[i] * cellPx - half,
+        t: this.offY + h[i + 1] * cellPx - half,
+        w: h[i + 2] * cellPx + thick,
+        h: thick
+      })
+    }
+    for (let i = 0; i < v.length; i += 3) {
+      walls.push({
+        l: this.offX + v[i] * cellPx - half,
+        t: this.offY + v[i + 1] * cellPx - half,
+        w: thick,
+        h: v[i + 2] * cellPx + thick
+      })
+    }
+    this.walls = walls
+
+    this.startLeft = this.offX + (level.start % cols) * cellPx
+    this.startTop = this.offY + Math.floor(level.start / cols) * cellPx
+    const goalSize = Math.round(0.5 * cellPx)
+    this.goalSize = goalSize
+    this.goalRadius = Math.ceil(goalSize / 2)
+    this.goalLeft = this.offX + (level.goal % cols) * cellPx + Math.round((cellPx - goalSize) / 2)
+    this.goalTop = this.offY + Math.floor(level.goal / cols) * cellPx + Math.round((cellPx - goalSize) / 2)
+
+    const ballSize = Math.round(0.56 * cellPx)
+    this.ballSize = ballSize
+    this.ballRadius = Math.ceil(ballSize / 2)
+    this.ballBorder = ballSize >= 10 ? 3 : 2
+
+    this.ready = true
+    this.resetRuntime()
+  },
+
+  /** 只重置球位置/速度/计时/finished，不触碰传感器订阅与定时器 */
+  resetRuntime() {
+    if (!this.level) return
+    this.state = Physics.createState(this.level)
+    this.elapsed = 0
+    this.accumulator = 0
+    this.lastTick = Date.now()
+    this.finished = false
+    this.timeText = '00.0'
+    this.syncBall()
+  },
+
+  /** 将 cell 坐标写入球的 left/top */
+  syncBall() {
+    const cellPx = this.cellPx
+    const r = this.ballSize / 2
+    this.ballLeft = Math.round(this.offX + this.state.x * cellPx - r)
+    this.ballTop = Math.round(this.offY + this.state.y * cellPx - r)
+  },
+
+  onShow() {
+    const self = this
+    try {
+      sensor.subscribeAccelerometer({
+        interval: 'game',
+        callback(ret) {
+          self.ax += (ret.x - self.ax) * LPF
+          self.ay += (ret.y - self.ay) * LPF
+        },
+        fail(data, code) {
+          console.log('[maze] 加速度订阅失败 ' + code)
+        }
+      })
+    } catch (e) {
+      console.log('[maze] sensor 不可用: ' + e)
+    }
+    if (this.timer) clearInterval(this.timer)
+    this.lastTick = Date.now()
+    this.timer = setInterval(() => this.tick(), 20)
+  },
+
+  onHide() {
+    this.stopLoop()
+  },
+
+  onDestroy() {
+    this.disposed = true
+    this.stopLoop()
+  },
+
+  onBackPress() {
+    this.disposed = true
+    this.stopLoop()
+    router.back({ path: '/pages/levels' })
+    return true
+  },
+
+  stopLoop() {
+    try {
+      sensor.unsubscribeAccelerometer()
+    } catch (e) {}
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = null
+    }
+  },
+
+  /** 用真实前台时间累计，以 20ms 固定步长推进物理。 */
+  tick() {
+    if (!this.ready || this.finished || this.disposed) return
+    const now = Date.now()
+    const delta = Math.max(0, now - this.lastTick)
+    this.lastTick = now
+    this.elapsed += delta
+    // 长卡顿最多补算 250ms，避免无限追帧；HUD 仍保留完整实际用时。
+    this.accumulator += Math.min(delta, 250)
+    const lv = this.level
+    const tx = Physics.AXIS_SIGN.x * Physics.normalizeTilt(this.ax)
+    const ty = Physics.AXIS_SIGN.y * Physics.normalizeTilt(this.ay)
+    const stepMs = Physics.CONST.DT * 1000
+    let won = false
+    while (this.accumulator + 1e-7 >= stepMs) {
+      this.accumulator = Math.max(0, this.accumulator - stepMs)
+      Physics.step(this.state, this.cells, lv.cols, lv.rows, tx, ty, Physics.CONST.DT)
+      if (Physics.reachedGoal(this.state, lv)) {
+        won = true
+        break
+      }
+    }
+    this.syncBall()
+    const t = Math.floor(this.elapsed / 100)
+    const s = Math.floor(t / 10)
+    this.timeText = (s < 10 ? '0' + s : '' + s) + '.' + (t % 10)
+    if (won) this.onWin()
+  },
+
+  onWin() {
+    this.finished = true
+    this.stopLoop()
+    if (this.pack === 'official') this.$app.$def.markCleared(this.index)
+    this.$app.$def.feedback()
+    router.replace({
+      uri: '/pages/complete',
+      params: { pack: this.pack, index: String(this.index), time: this.timeText }
+    })
+  },
+
+  onRestart() {
+    this.resetRuntime()
+  }
+}
+</script>
+
+<style>
+.page {
+  width: 192px;
+  height: 490px;
+  background-color: #f3efe7;
+}
+.abs {
+  position: absolute;
+}
+.hud-shadow {
+  height: 34px;
+}
+.hud {
+  height: 34px;
+  border: 3px solid #111111;
+  justify-content: center;
+  align-items: center;
+  padding: 0 8px;
+}
+.lv {
+  width: 80px;
+  background-color: #111111;
+}
+.timer {
+  width: 86px;
+  background-color: #ffffff;
+}
+.hud-text {
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+}
+.lv-text {
+  color: #ffffff;
+}
+.timer-text {
+  color: #111111;
+}
+.board-shadow {
+  width: 180px;
+  height: 280px;
+  background-color: #ff5b8d;
+}
+.board {
+  width: 180px;
+  height: 280px;
+  background-color: #ffffff;
+  border: 4px solid #111111;
+}
+.inner {
+  width: 172px;
+  height: 272px;
+}
+.start-cell {
+  background-color: #fff3b0;
+}
+.goal {
+  background-color: #ff5b8d;
+  border: 2px solid #111111;
+}
+.wall {
+  background-color: #111111;
+}
+.ball {
+  background-color: #ffd323;
+  border-style: solid;
+  border-color: #111111;
+}
+</style>

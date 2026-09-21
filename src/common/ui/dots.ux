@@ -1,0 +1,43 @@
+<!-- dots：三色点（黄/粉/黑 6px，间距 6px）+ 54×4 黑横线 -->
+<template>
+  <div class="dots" style="width: {{ width }}px; height: {{ height }}px">
+    <div class="row">
+      <div class="dot" style="background-color: #FFD323"></div>
+      <div class="dot" style="background-color: #FF5B8D; margin-left: 6px"></div>
+      <div class="dot" style="background-color: #111111; margin-left: 6px"></div>
+    </div>
+    <div class="line" style="margin-top: {{ gap }}px"></div>
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    width: { default: 192 },
+    height: { default: 30 },
+    /** 点与横线的间距（Home 429→451 为 16） */
+    gap: { default: 16 }
+  }
+}
+</script>
+
+<style>
+.dots {
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.row {
+  flex-direction: row;
+  height: 6px;
+}
+.dot {
+  width: 6px;
+  height: 6px;
+}
+.line {
+  width: 54px;
+  height: 4px;
+  background-color: #111111;
+}
+</style>

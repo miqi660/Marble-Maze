@@ -1,0 +1,102 @@
+<import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
+
+<template>
+  <stack class="page">
+    <div class="abs" style="left: 0px; top: 60px">
+      <text class="title">设置</text>
+    </div>
+    <div class="abs bar" style="left: 43px; top: 106px"></div>
+
+    <!-- 震动开关卡 -->
+    <div class="abs card-shadow" style="left: 20px; top: 164px"></div>
+    <div class="abs card" style="left: 16px; top: 160px">
+      <div class="card-col">
+        <text class="card-title">按钮震动</text>
+        <text class="card-sub">{{ vibrateOn ? '已开启' : '已关闭' }}</text>
+      </div>
+      <switch class="sw" checked="{{ vibrateOn }}" @change="onToggle"></switch>
+    </div>
+
+    <div class="abs" style="left: 24px; top: 300px">
+      <btn-hard label="返回" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18" @press="goBack"></btn-hard>
+    </div>
+  </stack>
+</template>
+
+<script>
+import router from '@system.router'
+
+export default {
+  private: {
+    vibrateOn: true
+  },
+  onInit() {
+    this.vibrateOn = this.$app.$def.vibrateOn
+  },
+  onToggle(e) {
+    this.vibrateOn = !!e.checked
+    this.$app.$def.setVibrate(this.vibrateOn)
+    this.$app.$def.feedback()
+  },
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.page {
+  width: 192px;
+  height: 490px;
+  background-color: #f3efe7;
+}
+.abs {
+  position: absolute;
+}
+.title {
+  width: 192px;
+  font-size: 33px;
+  font-weight: 900;
+  color: #111111;
+  text-align: center;
+}
+.bar {
+  width: 106px;
+  height: 8px;
+  background-color: #ff5b8d;
+}
+.card-shadow {
+  width: 160px;
+  height: 100px;
+  background-color: #ff5b8d;
+}
+.card {
+  width: 160px;
+  height: 100px;
+  background-color: #ffffff;
+  border: 3px solid #111111;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+.card-col {
+  flex-direction: column;
+}
+.card-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #111111;
+}
+.card-sub {
+  font-size: 12px;
+  color: #66615b;
+  margin-top: 4px;
+}
+.sw {
+  width: 44px;
+  height: 26px;
+  thumb-color: #111111;
+  track-color: #ffd323;
+}
+</style>

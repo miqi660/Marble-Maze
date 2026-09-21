@@ -1,0 +1,55 @@
+<!-- 带硬阴影按钮：stack 内先放阴影 div（偏移 4,4），再叠本体；按下时本体位移、阴影隐藏 -->
+<template>
+  <stack class="wrap" style="width: {{ width + 4 }}px; height: {{ height + 4 }}px"
+    @touchstart="onDown" @touchend="onUp" @touchcancel="onUp" @click="onClick">
+    <div class="shadow" show="{{ !pressed }}"
+      style="width: {{ width }}px; height: {{ height }}px; background-color: {{ shadow }}"></div>
+    <div class="body" style="width: {{ width }}px; height: {{ height }}px; background-color: {{ bg }}; left: {{ pressed ? 4 : 0 }}px; top: {{ pressed ? 4 : 0 }}px">
+      <text class="label" style="color: {{ color }}; font-size: {{ fontSize }}px">{{ label }}</text>
+    </div>
+  </stack>
+</template>
+
+<script>
+export default {
+  props: {
+    label: { default: '' },
+    width: { default: 160 },
+    height: { default: 58 },
+    bg: { default: '#FFD323' },
+    shadow: { default: '#111111' },
+    color: { default: '#111111' },
+    fontSize: { default: 22 }
+  },
+  data: { pressed: false },
+  onDown() {
+    this.pressed = true
+  },
+  onUp() {
+    this.pressed = false
+  },
+  onClick() {
+    this.$app.$def.feedback()
+    this.$emit('press')
+  }
+}
+</script>
+
+<style>
+.wrap {
+  flex-shrink: 0;
+}
+.shadow {
+  left: 4px;
+  top: 4px;
+}
+.body {
+  border: 3px solid #111111;
+  justify-content: center;
+  align-items: center;
+}
+.label {
+  font-weight: 900;
+  text-align: center;
+}
+</style>
