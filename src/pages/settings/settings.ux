@@ -17,7 +17,16 @@
       <switch class="sw" checked="{{ vibrateOn }}" @change="onToggle"></switch>
     </div>
 
-    <div class="abs" style="left: 24px; top: 300px" @click="goBack">
+    <div class="abs brightness-shadow" style="left: 20px; top: 284px"></div>
+    <div class="abs brightness-card" style="left: 16px; top: 280px">
+      <text class="card-title">应用亮度 {{ brightnessPercent }}%</text>
+      <div class="brightness-controls">
+        <div class="brightness-button" @click="dim"><text class="brightness-symbol">−</text></div>
+        <div class="brightness-button" @click="brighten"><text class="brightness-symbol">+</text></div>
+      </div>
+    </div>
+
+    <div class="abs" style="left: 24px; top: 404px" @click="goBack">
       <btn-hard label="返回" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
     </div>
   </stack>
@@ -28,13 +37,45 @@ import router from '@system.router'
 
 export default {
   private: {
-    vibrateOn: true
+    vibrateOn: true,
+    brightnessPercent: 50
   },
   onInit() {
     this.vibrateOn = this.$app.$def.vibrateOn
   },
+  onShow() {
+    this.active = true
+    const app = this.$app.$def
+    this.vibrateOn = app.vibrateOn
+    this.brightnessPercent = app.getBrightness()
+    app.brightnessReady.then(() => {
+      if (this.active) this.brightnessPercent = app.getBrightness()
+    })
+    app.vibrateReady.then(() => {
+      if (this.active) this.vibrateOn = app.vibrateOn
+    })
+  },
+  onHide() {
+    this.active = false
+  },
+  onDestroy() {
+    this.onHide()
+  },
+  dim() { this.adjustBrightness(-10) },
+  brighten() { this.adjustBrightness(10) },
+  adjustBrightness(delta) {
+    if (!this.active) return
+    const app = this.$app.$def
+    if (typeof delta !== 'number' || !isFinite(delta)) return
+    const percent = Math.max(10, Math.min(100, app.getBrightness() + delta))
+    if (percent === this.brightnessPercent) return
+    this.brightnessPercent = percent
+    app.setBrightness(percent)
+    app.feedback()
+  },
   onToggle(e) {
     this.vibrateOn = !!e.checked
+    if (this.vibrateOn === this.$app.$def.vibrateOn) return
     this.$app.$def.setVibrate(this.vibrateOn)
     this.$app.$def.feedback()
   },
@@ -98,5 +139,38 @@ export default {
   height: 26px;
   thumb-color: #111111;
   track-color: #ffd323;
+}
+.brightness-shadow {
+  width: 160px;
+  height: 104px;
+  background-color: #ffd323;
+}
+.brightness-card {
+  width: 160px;
+  height: 104px;
+  border: 3px solid #111111;
+  background-color: #ffffff;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.brightness-controls {
+  width: 144px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.brightness-button {
+  width: 68px;
+  height: 56px;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffd323;
+  border: 2px solid #111111;
+}
+.brightness-symbol {
+  font-size: 26px;
+  text-align: center;
+  color: #111111;
 }
 </style>

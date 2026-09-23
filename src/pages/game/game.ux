@@ -17,11 +17,11 @@
     <div class="abs board-shadow" style="left: {{ shadowLeft }}px; top: 105px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
     <div class="abs board" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
 
-    <!-- 板内区域：静态墙段；球使用兼容的位置样式并限制为 25Hz 更新 -->
+    <!-- 板内区域：静态墙段；球跟随 50Hz 物理循环提交最新位置 -->
     <stack class="abs inner" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px">
       <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
       <div class="abs wall" for="{{ walls }}" style="left: {{ $item.l }}px; top: {{ $item.t }}px; width: {{ $item.w }}px; height: {{ $item.h }}px"></div>
-      <div class="abs ball" style="left: {{ ballLeft }}px; top: {{ ballTop }}px; width: {{ ballSize }}px; height: {{ ballSize }}px; border-radius: {{ ballRadius }}px; border-width: {{ ballBorder }}px"></div>
+      <div class="abs ball {{ ballClass }}" style="{{ ballPosition }}"></div>
     </stack>
 
     <div class="abs" style="left: 35px; top: 395px" @click="onRestart">
@@ -61,11 +61,9 @@ export default {
     goalLeft: 0,
     goalTop: 0,
     walls: [],
-    ballLeft: 0,
-    ballTop: 0,
-    ballSize: 11,
-    ballRadius: 6,
-    ballBorder: 2
+    ballPosition: 'left: 0px; top: 0px',
+    ballClass: 'ball-size-11',
+    ballSize: 11
   },
 
   onInit() {
@@ -165,8 +163,7 @@ export default {
 
     const ballSize = Math.round(0.56 * cellPx)
     this.ballSize = ballSize
-    this.ballRadius = Math.ceil(ballSize / 2)
-    this.ballBorder = ballSize >= 10 ? 3 : 2
+    this.ballClass = 'ball-size-' + ballSize
 
     this.ready = true
     this.resetRuntime()
@@ -181,19 +178,21 @@ export default {
     this.lastTick = Date.now()
     this.finished = false
     this.timeText = '00.0'
-    this.lastBallDraw = this.lastTick
     this.lastHudDraw = this.lastTick
     this.syncBall()
   },
 
-  /** P0 隔离：回退动态 transform，位置只在 25Hz 绘制时更新。 */
+  /** 物理推进后刷新小球，坐标未改变时跳过写入。 */
   syncBall() {
     const cellPx = this.cellPx
     const r = this.ballSize / 2
     const left = Math.round(this.offX + this.state.x * cellPx - r)
     const top = Math.round(this.offY + this.state.y * cellPx - r)
+    if (left === this.ballLeft && top === this.ballTop) return
+    // 缓存坐标不绑定模板；每次移动只提交一个位置样式，固定外观不参与解析。
     if (left !== this.ballLeft) this.ballLeft = left
     if (top !== this.ballTop) this.ballTop = top
+    this.ballPosition = 'left: ' + left + 'px; top: ' + top + 'px'
   },
 
   onShow() {
@@ -274,9 +273,9 @@ export default {
     }
     // 超出三步的积压直接丢弃，仅保留不足一步的余量。
     if (this.accumulator >= stepMs) this.accumulator %= stepMs
-    if (won || now - this.lastBallDraw >= 40) {
+    // 定时器自身已限频；再按墙钟限流会在 21/19ms 抖动时丢掉一半刷新。
+    if (steps > 0) {
       this.syncBall()
-      this.lastBallDraw = now
     }
     if (won || now - this.lastHudDraw >= 200) {
       this.syncHud()
@@ -363,5 +362,36 @@ export default {
   background-color: #ffd323;
   border-style: solid;
   border-color: #111111;
+}
+/* 当前关卡范围 7..11 列、13..20 行，对应球直径 8..12px。 */
+.ball-size-8 {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  border-width: 2px;
+}
+.ball-size-9 {
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+  border-width: 2px;
+}
+.ball-size-10 {
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  border-width: 3px;
+}
+.ball-size-11 {
+  width: 11px;
+  height: 11px;
+  border-radius: 6px;
+  border-width: 3px;
+}
+.ball-size-12 {
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  border-width: 3px;
 }
 </style>

@@ -121,6 +121,7 @@ async function cacheAndSync() {
   let destructions = 0
   const app = load('src/app.ux', {
     OFFICIAL, SlotStore, MazeSync: {}, vibrator: {},
+    gameDisplay: { start() { return {} }, stop() {}, update() {} },
     storage: { get: (o) => o.fail() },
     Handshake: class { register() { registrations++; return { destroy() { destructions++ } } } }
   })
@@ -143,6 +144,12 @@ function gameBudget() {
     lastTick: 0, lastBallDraw: 0, lastHudDraw: 0, cellPx: 20, ballSize: 11, offX: 0, offY: 0
   })
   let ballWrites = 0
+  let positionWrites = 0
+  let positionValue
+  Object.defineProperty(page, 'ballPosition', { get: () => positionValue, set: (value) => { positionValue = value; positionWrites++ } })
+  let ballDraws = 0
+  const syncBall = page.syncBall
+  page.syncBall = function () { ballDraws++; syncBall.call(this) }
   let topWrites = 0
   let hudWrites = 0
   let ballValue
@@ -153,13 +160,29 @@ function gameBudget() {
   Object.defineProperty(page, 'timeText', { get: () => hudValue, set: (v) => { hudValue = v; hudWrites++ } })
   for (let i = 1; i <= 50; i++) { now = i * 20; page.tick() }
   assert.equal(steps, 50)
-  assert.equal(ballWrites, 25)
+  assert.equal(ballDraws, 50, '小球应每 20ms 刷新一次')
+  assert.ok(ballWrites > 25 && ballWrites <= 50, '整数坐标变化时才写入位置')
   assert.equal(hudWrites, 5)
   assert.equal(page.timeText, '01.0')
   assert.equal(topWrites, 1, '未改变的纵坐标不得重复写入')
+  assert.equal(positionWrites, ballWrites, '每次位移只提交一次绑定样式')
+  const beforePositionWrites = positionWrites
+  page.syncBall()
+  assert.equal(positionWrites, beforePositionWrites, '位置未改变时不重复提交样式')
   assert.ok(Number.isFinite(page.ballLeft) && Number.isFinite(page.ballTop))
   const gameSource = fs.readFileSync('src/pages/game/game.ux', 'utf8')
   assert.ok(!gameSource.includes('ballTransform') && !/transform\s*:/.test(gameSource), '隔离包不得保留动态 transform 绑定')
+  for (let cols = 7; cols <= 11; cols++) {
+    for (let rows = 13; rows <= 20; rows++) {
+      const size = Math.round(0.56 * Math.min(184 / cols, 286 / rows))
+      const rule = gameSource.match(new RegExp('\\.ball-size-' + size + '\\s*\\{([^}]+)\\}'))
+      assert.ok(rule, '每种允许的关卡尺寸都应有静态球样式')
+      assert.ok(rule[1].includes('width: ' + size + 'px'))
+      assert.ok(rule[1].includes('height: ' + size + 'px'))
+      assert.ok(rule[1].includes('border-radius: ' + Math.ceil(size / 2) + 'px'))
+      assert.ok(rule[1].includes('border-width: ' + (size >= 10 ? 3 : 2) + 'px'))
+    }
+  }
   now += 1000
   page.tick()
   assert.equal(steps, 53, '长卡顿一次最多补算三步')
@@ -174,7 +197,19 @@ function gameBudget() {
   assert.strictEqual(page.collisionIndex, index)
   assert.equal(page.timeText, '00.0')
   assert.equal(page.elapsed, 0)
-  console.log('✓ 1 秒内物理 50 步、球 25 次位置更新、HUD 5 次更新；长卡顿最多三步；无 transform 绑定')
+  // 20ms 定时器受到 1ms 抖动时，已经推进的物理状态不能被第二道限流丢弃。
+  ballDraws = 0
+  const drawnAt = []
+  page.syncBall = function () { ballDraws++; drawnAt.push(now); syncBall.call(this) }
+  const baselineSteps = steps
+  for (let i = 0; i < 50; i++) {
+    now += i % 2 === 0 ? 21 : 19
+    page.tick()
+  }
+  assert.equal(steps - baselineSteps, 50)
+  assert.equal(ballDraws, 50, '21/19ms 抖动下每次物理推进都应提交小球位置')
+  assert.ok(drawnAt.slice(1).every((time, i) => time - drawnAt[i] <= 21), '不得因重复限流产生 40ms 绘制空档')
+  console.log('✓ 1 秒内物理 50 步、球 50 次刷新、HUD 5 次更新；长卡顿最多三步；无 transform 绑定')
 }
 
 cacheAndSync().then(gameBudget).catch((error) => { console.error(error); process.exitCode = 1 })

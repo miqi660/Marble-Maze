@@ -1,72 +1,87 @@
 import interconn from './interconn.js';
-//握握手，握握双手
-const type = "__hs__"
+
+const type = "__hs__";
 const TIMEOUT = 3000;
 
 export default class InterHandshake extends interconn {
-    /** @type {Promise<void>} */
     promise = null;
-    /** @type {(value: void | PromiseLike<void>) => void} */
-    resolve = null;
-    timeout = null;
+    round = null;
+    callback = () => { };
+
     constructor() {
         super();
-        this.conn.onmessage = ({ data }) => {
-            try {
-                const message = typeof data === 'string' ? JSON.parse(data) : data;
-                if (!message || typeof message.tag !== 'string') return;
-                clearTimeout(this.timeout);
-                this.timeout = setTimeout(() => this.promise = this.resolve = null, TIMEOUT);
-                const { tag, ...payload } = message;
-                const callback = this.callbacks[tag];
-                if (typeof callback === 'function') callback(payload);
-            } catch (e) {
-                this.eventListeners.forEach((callback) => {
-                    if (typeof callback === 'function') callback("error");
-                });
-            }
-        }
         this.addListener(type, ({ count }) => {
-            if (count > 0) {
-                if (this.promise) this.resolve(this.resolve = null)
-                else {
-                    this.promise = Promise.resolve()
-                    this.callback()
-                }
+            if (count !== 0 && count !== 1 && count !== 2) return;
+            const round = this.round || this._createRound();
+            if (count > 0 && !round.connected) {
+                round.connected = true;
+                clearTimeout(round.timeout);
+                round.timeout = null;
+                round.resolve();
+                this.callback();
             }
-            if (count++ < 2) super.send(type, { count });
-        })
-        this.addEventListener((e) => {
-            if (e !== "open") {
-                this.resolve = null;
-                this.promise = Promise.reject(new Error("connection closed"));
-                clearTimeout(this.timeout);
-                return
+            // 重复消息只补发协议响应，不重复完成握手或调用监听器。
+            if (count < 2) this._sendHandshake(round, count + 1);
+        });
+        this.addEventListener((event) => {
+            if (event === "open") {
+                this._reset(new Error("connection reopened"));
+                this._newPromise();
+            } else if (event === "close" || event === "error") {
+                this._reset(new Error("connection closed"));
             }
-            this.promise = this._newPromise()
-        })
+        });
     }
+
     async send(...args) {
-        if (this.promise) await this.promise;
-        else await (this.promise = this._newPromise())
-        return await super.send(...args)
+        if (!this.round) this._newPromise();
+        const round = this.round;
+        await round.promise;
+        // Promise 完成到恢复执行之间也可能断线，禁止旧请求借用新连接。
+        if (this.round !== round || !round.connected) throw new Error("connection closed");
+        return await super.send(...args);
     }
+
     setHandshakeListener(callback) {
-        this.callback= callback
+        this.callback = callback;
     }
-    callback = () => { }
-    get connected() { return this.promise !== null }
+
+    get connected() { return !!(this.round && this.round.connected); }
+
+    _reset(error, round = this.round) {
+        if (!round || this.round !== round) return;
+        clearTimeout(round.timeout);
+        round.timeout = null;
+        round.connected = false;
+        this.round = null;
+        this.promise = null;
+        round.reject(error);
+    }
+
+    _createRound() {
+        const round = { connected: false, timeout: null };
+        round.promise = new Promise((resolve, reject) => {
+            round.resolve = resolve;
+            round.reject = reject;
+        });
+        // 被动握手或 open 事件可能没有业务等待者；原 Promise 仍向 send 传递失败。
+        round.promise.catch(() => {});
+        this.round = round;
+        this.promise = round.promise;
+        round.timeout = setTimeout(() => {
+            if (!round.connected) this._reset(new Error("timeout"), round);
+        }, TIMEOUT);
+        return round;
+    }
+
+    _sendHandshake(round, count) {
+        if (this.round !== round) return;
+        super.send(type, { count }).catch((error) => this._reset(error, round));
+    }
+
     _newPromise() {
-        return new Promise(( resolve, reject ) => {
-            const timeout = setTimeout(() => {
-                reject(new Error("timeout"));
-                this.promise = this.resolve = null;
-            }, TIMEOUT)
-            this.resolve = () => {
-                resolve()
-                clearTimeout(timeout)
-            }
-            super.send(type, { count: 0 })
-        })
+        const round = this._createRound();
+        this._sendHandshake(round, 0);
+        return round.promise;
     }
 }

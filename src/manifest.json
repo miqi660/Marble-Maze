@@ -9,6 +9,7 @@
   "features": [
     { "name": "system.router" },
     { "name": "system.sensor" },
+    { "name": "system.brightness" },
     { "name": "system.vibrator" },
     { "name": "system.storage" },
     { "name": "system.device" },

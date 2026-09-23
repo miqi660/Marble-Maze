@@ -8,11 +8,13 @@ import Handshake from './utils/handshake.js'
 import { OFFICIAL } from './common/levels.js'
 import SlotStore from './common/slot-store.js'
 import MazeSync from './common/maze-sync.js'
+import gameDisplay from './common/game-display.js'
 
 export default {
   data: {
     /** 按钮震动反馈开关（内存缓存，settings 页修改时同步写 storage） */
     vibrateOn: true,
+    brightnessPercent: 50,
     /** 已通关的 Official 关卡数（进度） */
     progress: 0,
     /** 关卡包定义 */
@@ -21,14 +23,37 @@ export default {
 
   onCreate() {
     const app = this
+    // app.ux 的 data 默认值不作为 $def 顶层字段已初始化的保证。
+    this.brightnessPercent = 50
     this.slotStore = new SlotStore()
     this.slotStore.init()
-    storage.get({
-      key: 'settings_vibrate',
-      success(v) {
-        if (v === '0') app.vibrateOn = false
-      },
-      fail() {}
+    this.brightnessRevision = 0
+    this.brightnessWrites = Promise.resolve(true)
+    this.brightnessReady = new Promise((resolve) => {
+      storage.get({
+        key: 'settings_brightness',
+        success(v) {
+          const n = Number(v)
+          if (app.brightnessRevision === 0 && n >= 10 && n <= 100) app.brightnessPercent = Math.round(n)
+          resolve()
+        },
+        fail() { resolve() }
+      })
+    })
+    this.vibrateRevision = 0
+    this.vibrateLoaded = false
+    this.vibrateWrites = Promise.resolve(true)
+    this.vibrateReady = new Promise((resolve) => {
+      storage.get({
+        key: 'settings_vibrate',
+        success(v) {
+          // 启动读取晚于用户操作时，保留用户刚选的状态。
+          if (app.vibrateRevision === 0) app.vibrateOn = v !== '0'
+          app.vibrateLoaded = true
+          resolve()
+        },
+        fail() { app.vibrateLoaded = true; resolve() }
+      })
     })
     this.progressReady = new Promise((resolve) => {
       storage.get({
@@ -52,9 +77,21 @@ export default {
       console.log('[maze] interconnect 不可用: ' + e)
       globalThis.conn = null
     }
+    this.onShow()
+  },
+
+  onShow() {
+    if (this.displaySession) return
+    this.displaySession = gameDisplay.start(this.brightnessReady.then(() => Math.round(this.getBrightness() * 255 / 100)))
+  },
+
+  onHide() {
+    gameDisplay.stop(this.displaySession)
+    this.displaySession = null
   },
 
   onDestroy() {
+    this.onHide()
     if (this.syncModule) this.syncModule.destroy()
     this.syncModule = null
     MazeSync.store = null
@@ -62,15 +99,46 @@ export default {
 
   /** 按钮点击反馈：开启时短震 */
   feedback() {
-    if (!this.vibrateOn) return
+    if (!this.vibrateLoaded || !this.vibrateOn) return
     try {
       vibrator.vibrate({ mode: 'short' })
     } catch (e) {}
   },
 
   setVibrate(on) {
+    this.vibrateRevision++
     this.vibrateOn = !!on
-    storage.set({ key: 'settings_vibrate', value: on ? '1' : '0', success() {}, fail() {} })
+    const value = on ? '1' : '0'
+    // 每次切换即保存，串行写入避免快速切换后旧值最后落盘。
+    this.vibrateWrites = this.vibrateWrites.then(() => this.vibrateReady).then(() => new Promise((resolve) => {
+      storage.set({
+        key: 'settings_vibrate', value,
+        success() { resolve(true) },
+        fail(data, code) { console.log('[maze] 震动设置保存失败 ' + code); resolve(false) }
+      })
+    })).catch((error) => { console.log('[maze] 震动设置保存失败: ' + error); return false })
+    return this.vibrateWrites
+  },
+
+  setBrightness(percent) {
+    if (typeof percent !== 'number' || !isFinite(percent)) return Promise.resolve(false)
+    this.brightnessRevision++
+    this.brightnessPercent = Math.max(10, Math.min(100, Math.round(percent)))
+    gameDisplay.update(this.displaySession, Math.round(this.brightnessPercent * 255 / 100))
+    const value = String(this.brightnessPercent)
+    this.brightnessWrites = this.brightnessWrites.then(() => this.brightnessReady).then(() => new Promise((resolve) => {
+      storage.set({ key: 'settings_brightness', value, success() { resolve(true) }, fail(data, code) {
+        console.log('[maze] 亮度设置保存失败 ' + code)
+        resolve(false)
+      } })
+    })).catch((error) => { console.log('[maze] 亮度设置保存失败: ' + error); return false })
+    return this.brightnessWrites
+  },
+
+  getBrightness() {
+    const value = this.brightnessPercent
+    const n = typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN
+    return isFinite(n) ? Math.max(10, Math.min(100, Math.round(n))) : 50
   },
 
   /** 记录通关进度（Official 关卡 index 从 0 起） */

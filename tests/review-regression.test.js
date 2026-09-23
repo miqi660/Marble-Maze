@@ -41,6 +41,7 @@ async function progressTest() {
   let read
   const writes = []
   const app = readUx('src/app.ux', {
+    gameDisplay: { start() { return {} }, stop() {}, update() {} },
     OFFICIAL: new Array(6), storage: { get(o) { if (o.key === 'progress') read = o }, set(o) { writes.push(o) } },
     Handshake: class { register() { return { destroy() {} } } }, vibrator: {}, MazeSync: {}, SlotStore: class { init() {} }
   })

@@ -100,10 +100,11 @@ async function navigationTest() {
   let clears = 0
   let sensorCallback
   const game = readUx('src/pages/game/game.ux', {
-    Physics, returnToPage,
+    Physics, returnToPage, gameDisplay: { start() {}, stop() {} },
     sensor: { subscribeAccelerometer(o) { subscribes++; sensorCallback = o.callback }, unsubscribeAccelerometer() { unsubscribes++ } },
     setInterval: () => 1, clearInterval: () => clears++
   })
+  game.$app = { $def: { brightnessReady: Promise.resolve(), getBrightness: () => 50 } }
   game.onShow()
   game.onShow()
   game.onHide()
