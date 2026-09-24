@@ -56,7 +56,7 @@ export default {
       this.levelName = 'LEVEL ' + (this.index + 1)
       this.hasNext = this.index < OFFICIAL.length - 1
     } else {
-      this.levelName = this.pack === 'custom_b' ? 'CUSTOM B' : 'CUSTOM A'
+      this.levelName = 'CUSTOM'
       this.hasNext = false
     }
   },

@@ -5,6 +5,8 @@
 import { interconnModule } from '../utils/interconn.js'
 import MazeValidate from './maze-validate.js'
 
+import CustomSlots from './custom-slots.js'
+
 const ACK_TIMEOUT = 8000
 
 export default class MazeSync extends interconnModule {
@@ -49,7 +51,7 @@ export default class MazeSync extends interconnModule {
   }
 
   handlePut(payload) {
-    const slot = payload.slot === 'b' ? 'b' : payload.slot === 'a' ? 'a' : null
+    const slot = CustomSlots.keys.indexOf(payload.slot) >= 0 ? payload.slot : null
     if (!slot) {
       this.reply({ type: 'ack', slot: String(payload.slot || ''), ok: false, message: 'bad slot' })
       return
@@ -67,7 +69,7 @@ export default class MazeSync extends interconnModule {
   handleList() {
     this.store.init().then(() => {
       const slots = []
-      const keys = ['a', 'b']
+      const keys = CustomSlots.keys
       keys.forEach((slot) => {
         const s = this.store.get(slot)
         if (s) slots.push({ slot, id: s.id || '', name: s.name || '', cols: s.cols, rows: s.rows })
@@ -77,7 +79,7 @@ export default class MazeSync extends interconnModule {
   }
 
   handleClear(payload) {
-    const slot = payload.slot === 'b' ? 'b' : payload.slot === 'a' ? 'a' : null
+    const slot = CustomSlots.keys.indexOf(payload.slot) >= 0 ? payload.slot : null
     if (!slot) {
       this.reply({ type: 'ack', slot: '', ok: false, message: 'bad slot' })
       return

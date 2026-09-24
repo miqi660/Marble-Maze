@@ -1,13 +1,14 @@
 const assert = require('assert')
 const fs = require('fs')
 const vm = require('vm')
+const CustomSlots = require('../src/common/custom-slots.js')
 const Physics = require('../src/common/physics.js')
 const MazeCore = require('../src/common/maze-core.js')
 const Validate = require('../src/common/maze-validate.js')
 function readUx(path, globals) {
   const script = fs.readFileSync(path, 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
-  const context = Object.assign({ module: { exports: {} }, console, Promise }, globals)
+  const context = Object.assign({ module: { exports: {} }, CustomSlots, console, Promise }, globals)
   vm.runInNewContext(script, context)
   return context.module.exports
 }

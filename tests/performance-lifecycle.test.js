@@ -1,6 +1,7 @@
 const assert = require('assert')
 const fs = require('fs')
 const vm = require('vm')
+const CustomSlots = require('../src/common/custom-slots.js')
 const MazeCore = require('../src/common/maze-core.js')
 const MazeValidate = require('../src/common/maze-validate.js')
 const Physics = require('../src/common/physics.js')
@@ -10,7 +11,7 @@ function load(path, globals) {
   let code = fs.readFileSync(path, 'utf8')
   if (path.endsWith('.ux')) code = code.match(/<script>([\s\S]*?)<\/script>/)[1]
   code = code.replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
-  const scope = Object.assign({ module: { exports: {} }, console, Promise, setTimeout, clearTimeout }, globals)
+  const scope = Object.assign({ module: { exports: {} }, CustomSlots, console, Promise, setTimeout, clearTimeout }, globals)
   vm.runInNewContext(code, scope)
   return scope.module.exports
 }
@@ -49,7 +50,7 @@ async function cacheAndSync() {
   const store = new SlotStore()
   const ready = store.init()
   assert.strictEqual(store.init(), ready)
-  assert.equal(pendingReads.length, 2)
+  assert.equal(pendingReads.length, 12)
   const first = MazeValidate.stripCrc(OFFICIAL[0])
   const second = { ...MazeValidate.stripCrc(OFFICIAL[1]), name: '同步关卡' }
   // 启动读取未结束时收到同步，旧读取不能覆盖新写入。
@@ -58,6 +59,7 @@ async function cacheAndSync() {
   assert.equal(writes.length, 0)
   pendingReads[0].success(JSON.stringify(first))
   pendingReads[1].success('{损坏内容')
+  pendingReads.slice(2).forEach((read) => read.success(''))
   assert.equal(await saving, true)
   assert.equal(store.get('a').name, '同步关卡')
   assert.equal(store.get('b'), null)
@@ -95,7 +97,7 @@ async function cacheAndSync() {
   listener({ stat: 'list' })
   await drain()
   assert.equal(messages[messages.length - 1].slots.length, 2)
-  assert.equal(pendingReads.length, 2, 'list 和同步不得重复读取 storage')
+  assert.equal(pendingReads.length, 12, 'list 和同步不得重复读取 storage')
   listener({ stat: 'clear', slot: 'b' })
   await drain()
   assert.equal(store.get('b'), null)
@@ -107,7 +109,7 @@ async function cacheAndSync() {
   })
   page.onInit()
   for (let i = 0; i < 20; i++) { page.onShow(); await drain(); page.onHide() }
-  assert.equal(pendingReads.length, 2)
+  assert.equal(pendingReads.length, 12)
   assert.equal(prepares, 1, '关卡卡片不能生成渲染数据')
   assert.equal(store.listeners.length, 0)
   page.onShow()
@@ -129,7 +131,7 @@ async function cacheAndSync() {
   assert.equal(registrations, 1)
   app.onDestroy()
   assert.equal(destructions, 1)
-  console.log('✓ 缓存只读两次、启动读写竞争、写失败、写入顺序、全局同步、20 次页面返回零 IO/零 prepare')
+  console.log('✓ 12 槽启动各读一次、启动读写竞争、写失败、写入顺序、全局同步、20 次页面返回零 IO/零 prepare')
 }
 
 function gameBudget() {

@@ -1,6 +1,4 @@
-<import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
 <import name="eyebrow" src="../../common/ui/eyebrow.ux"></import>
-<import name="dots" src="../../common/ui/dots.ux"></import>
 
 <template>
   <stack class="page" @touchstart="onTouchStart" @touchend="onTouchEnd">
@@ -28,44 +26,45 @@
       <div class="abs prog" style="left: 18px; top: 395px">
         <text class="prog-txt">已通关 {{ progress }} / {{ officialCount }}</text>
       </div>
-      <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
     </stack>
 
-    <!-- 页 2/3：Custom A / B -->
-    <block for="{{ (ci, slot) in slots }}">
-      <stack if="{{ pageIndex === ci + 1 }}" class="page">
-        <div class="abs" style="left: 55px; top: 48px">
-          <eyebrow label="{{ slot.eyebrow }}" width="82" height="24"></eyebrow>
-        </div>
-        <text class="abs title title-shadow" style="left: 4px; top: 86px">自定义</text>
-        <text class="abs title" style="left: 0px; top: 82px">自定义</text>
-        <div class="abs bar" style="left: 43px; top: 117px"></div>
-
-        <!-- 单张大卡 156×110 @top148 -->
-        <div class="abs big-shadow" style="left: 22px; top: 152px"></div>
-        <div class="abs big" style="left: 18px; top: 148px; background-color: {{ slot.level ? '#FFFFFF' : '#D9D4CC' }}" @click="playCustom(slot.key)">
-          <text class="big-state">{{ slot.level ? '已就绪' : '空槽位' }}</text>
-          <text class="big-name">{{ slot.level ? slot.level.name || slot.level.id || '自定义关卡' : '等待同步' }}</text>
-          <text class="big-meta" show="{{ !!slot.level }}">{{ slot.level ? slot.level.cols + ' × ' + slot.level.rows : '' }}</text>
-          <text class="big-meta">{{ slot.level ? slot.diffLabel : '手机 App 同步或本地生成' }}</text>
-        </div>
-
-        <div class="abs" style="left: 35px; top: 290px" @click="onSlotButton(slot.key)">
-          <btn-hard label="{{ slot.level ? '开始' : '随机生成' }}" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18"></btn-hard>
-        </div>
-        <div class="abs" style="left: 35px; top: 352px" show="{{ !!slot.level }}" @click="regenerate(slot.key)">
-          <btn-hard label="重新生成" width="122" height="36" bg="#FFFFFF" shadow="#111111" font-size="14"></btn-hard>
-        </div>
-        <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
-      </stack>
-    </block>
+    <!-- 页 2/3：统一自定义关卡，每页 2 列 × 3 行。 -->
+    <stack if="{{ pageIndex > 0 }}" class="page">
+      <div class="abs" style="left: 55px; top: 48px">
+        <eyebrow label="CUSTOM" width="82" height="24"></eyebrow>
+      </div>
+      <text class="abs title title-shadow" style="left: 4px; top: 86px">自定义</text>
+      <text class="abs title" style="left: 0px; top: 82px">自定义</text>
+      <div class="abs bar" style="left: 43px; top: 117px"></div>
+      <block for="{{ (ci, slot) in slots }}">
+        <block if="{{ slot.page === pageIndex }}">
+          <div class="abs shadow" style="left: {{ slot.left + 4 }}px; top: {{ slot.top + 4 }}px; background-color: {{ slot.level ? '#111111' : '#D9D4CC' }}"></div>
+          <div class="abs card" style="left: {{ slot.left }}px; top: {{ slot.top }}px; background-color: {{ slot.level ? '#FFFFFF' : '#F3EFE7' }}" @click="playCustom(slot.key)">
+            <text if="{{ !!slot.level }}" class="card-no">{{ slot.no }}</text>
+            <text if="{{ !!slot.level }}" class="card-diff">{{ slot.diffLabel }}</text>
+            <text if="{{ !slot.level }}" class="empty-plus">+</text>
+          </div>
+        </block>
+      </block>
+      <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
+      <div class="abs prog" style="left: 18px; top: 395px">
+        <text class="prog-txt">{{ pageIndex === 1 ? '1/6' : '7/12' }}</text>
+      </div>
+    </stack>
+    <div class="abs pagination" style="left: 0px; top: 446px">
+      <div class="page-dot" style="background-color: {{ pageIndex === 0 ? '#FF5B8D' : '#F3EFE7' }}"></div>
+      <div class="page-dot" style="background-color: {{ pageIndex === 1 ? '#FF5B8D' : '#F3EFE7' }}"></div>
+      <div class="page-dot" style="background-color: {{ pageIndex === 2 ? '#FF5B8D' : '#F3EFE7' }}"></div>
+    </div>
   </stack>
 </template>
 
 <script>
 import router from '@system.router'
-import { OFFICIAL, DIFFICULTY_LABEL, randomCustom } from '../../common/levels.js'
+import { OFFICIAL, DIFFICULTY_LABEL } from '../../common/levels.js'
 import { returnToPage } from '../../common/navigation.js'
+
+import CustomSlots from '../../common/custom-slots.js'
 
 const DIFF_SHORT = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', expert: 'EXPERT' }
 
@@ -75,10 +74,7 @@ export default {
     progress: 0,
     officialCount: OFFICIAL.length,
     officialCards: [],
-    slots: [
-      { key: 'a', eyebrow: 'CUSTOM A', level: null, diffLabel: '' },
-      { key: 'b', eyebrow: 'CUSTOM B', level: null, diffLabel: '' }
-    ]
+    slots: []
   },
 
   onInit() {
@@ -137,17 +133,23 @@ export default {
   },
 
   refreshSlots() {
-    this.applySlot('a', this.$app.$def.slotStore.get('a'))
-    this.applySlot('b', this.$app.$def.slotStore.get('b'))
+    const store = this.$app.$def.slotStore
+    this.slots = CustomSlots.keys.map((key, i) => {
+      const level = store.get(key)
+      return {
+        key,
+        no: String(i + 1),
+        page: 1 + Math.floor(i / 6),
+        left: 15 + (i % 2) * 87,
+        top: 148 + Math.floor((i % 6) / 2) * 76,
+        level,
+        diffLabel: level ? DIFFICULTY_LABEL[level.difficulty] || '自定义' : ''
+      }
+    })
   },
 
-  applySlot(slot, slim) {
-    const idx = slot === 'a' ? 0 : 1
-    const s = this.slots[idx]
-    if (s.level === slim) return
-    s.level = slim
-    s.diffLabel = slim ? DIFFICULTY_LABEL[slim.difficulty] || '自定义' : ''
-    this.slots.splice(idx, 1, s)
+  applySlot() {
+    this.refreshSlots()
   },
 
   /** 单页手势只改变索引，不挂载隐藏的 Custom 页面。 */
@@ -189,25 +191,12 @@ export default {
     router.push({ uri: '/pages/game', params: { pack: 'official', index: String(i) } })
   },
 
-  playCustom(slot, feedbackDone) {
-    const s = this.slots[slot === 'a' ? 0 : 1]
-    if (this.leaving || !s.level) return
+  playCustom(slot) {
+    const s = this.slots[CustomSlots.keys.indexOf(slot)]
+    if (this.leaving || !s || !s.level) return
     this.leaving = true
-    if (feedbackDone !== true) this.$app.$def.feedback()
+    this.$app.$def.feedback()
     router.push({ uri: '/pages/game', params: { pack: 'custom_' + slot, index: '0' } })
-  },
-
-  onSlotButton(slot) {
-    const s = this.slots[slot === 'a' ? 0 : 1]
-    if (s.level) this.playCustom(slot, true)
-    else this.regenerate(slot)
-  },
-
-  /** 本地随机生成一关并写回槽位 */
-  regenerate(slot) {
-    const diffs = ['easy', 'normal', 'hard', 'expert']
-    const level = randomCustom(diffs[Math.floor(Math.random() * diffs.length)], slot)
-    this.$app.$def.slotStore.save(slot, level)
   }
 }
 </script>
@@ -291,36 +280,23 @@ export default {
   font-weight: 900;
   color: #111111;
 }
-.big-shadow {
-  width: 156px;
-  height: 110px;
-  background-color: #ff5b8d;
+.empty-plus {
+  font-size: 38px;
+  color: #66615b;
+  text-align: center;
 }
-.big {
-  width: 156px;
-  height: 110px;
-  border: 3px solid #111111;
-  flex-direction: column;
+.pagination {
+  width: 192px;
+  height: 10px;
   justify-content: center;
   align-items: center;
 }
-.big-state {
-  font-size: 11px;
-  font-weight: 900;
-  color: #ff5b8d;
-  letter-spacing: 0.9px;
-}
-.big-name {
-  font-size: 18px;
-  font-weight: 900;
-  color: #111111;
-  margin-top: 4px;
-  text-align: center;
-}
-.big-meta {
-  font-size: 12px;
-  color: #66615b;
-  margin-top: 3px;
-  text-align: center;
+.page-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  margin-right: 4px;
+  border: 2px solid #111111;
+  border-radius: 4px;
 }
 </style>

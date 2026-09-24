@@ -1,20 +1,27 @@
 import storage from '@system.storage'
 import MazeValidate from './maze-validate.js'
 
-const SLOT_KEYS = { a: 'custom_a', b: 'custom_b' }
+import CustomSlots from './custom-slots.js'
+
+const SLOT_KEYS = {}
+CustomSlots.keys.forEach((slot) => { SLOT_KEYS[slot] = 'custom_' + slot })
 
 /** App 持有的唯一槽位缓存；页面只读，所有写入串行提交到存储和缓存。 */
 export default class SlotStore {
   constructor() {
-    this.entries = { a: null, b: null }
+    this.entries = {}
     this.listeners = []
     this.ready = null
-    this.queues = { a: Promise.resolve(), b: Promise.resolve() }
+    this.queues = {}
+    CustomSlots.keys.forEach((slot) => {
+      this.entries[slot] = null
+      this.queues[slot] = Promise.resolve()
+    })
   }
 
   init() {
     if (this.ready) return this.ready
-    this.ready = Promise.all(['a', 'b'].map((slot) => new Promise((resolve) => {
+    this.ready = Promise.all(CustomSlots.keys.map((slot) => new Promise((resolve) => {
       storage.get({
         key: SLOT_KEYS[slot],
         success: (value) => {
@@ -58,12 +65,12 @@ export default class SlotStore {
   }
 
   saveValidated(slot, result) {
-    if (!SLOT_KEYS[slot] || !result.ok) return Promise.resolve(false)
+    if (CustomSlots.keys.indexOf(slot) < 0 || !result.ok) return Promise.resolve(false)
     return this.enqueue(slot, { slim: result.slim, level: result.level })
   }
 
   clear(slot) {
-    if (!SLOT_KEYS[slot]) return Promise.resolve(false)
+    if (CustomSlots.keys.indexOf(slot) < 0) return Promise.resolve(false)
     return this.enqueue(slot, null)
   }
 

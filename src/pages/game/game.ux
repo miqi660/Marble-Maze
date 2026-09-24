@@ -87,7 +87,7 @@ export default {
     if (this.pack === 'official') {
       this.setupLevel(buildOfficial(this.index))
     } else {
-      const slot = this.pack === 'custom_b' ? 'b' : 'a'
+      const slot = this.pack.slice(0, 7) === 'custom_' ? this.pack.slice(7) : ''
       this.$app.$def.slotStore.ready.then(() => {
         if (this.disposed) return
         const level = this.$app.$def.slotStore.getLevel(slot)
