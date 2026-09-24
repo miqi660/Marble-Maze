@@ -36,25 +36,28 @@
       <text class="abs title title-shadow" style="left: 4px; top: 86px">自定义</text>
       <text class="abs title" style="left: 0px; top: 82px">自定义</text>
       <div class="abs bar" style="left: 43px; top: 117px"></div>
-      <block for="{{ (ci, slot) in slots }}">
-        <block if="{{ slot.page === pageIndex }}">
-          <div class="abs shadow" style="left: {{ slot.left + 4 }}px; top: {{ slot.top + 4 }}px; background-color: {{ slot.level ? '#111111' : '#D9D4CC' }}"></div>
-          <div class="abs card" style="left: {{ slot.left }}px; top: {{ slot.top }}px; background-color: {{ slot.level ? '#FFFFFF' : '#F3EFE7' }}" @click="playCustom(slot.key)">
-            <text if="{{ !!slot.level }}" class="card-no">{{ slot.no }}</text>
-            <text if="{{ !!slot.level }}" class="card-diff">{{ slot.diffLabel }}</text>
-            <text if="{{ !slot.level }}" class="empty-plus">+</text>
+      <block for="{{ (ci, card) in customCards }}">
+        <block if="{{ card.page === pageIndex && card.type === 'level' }}">
+          <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #111111"></div>
+          <div class="abs card" style="left: {{ card.left }}px; top: {{ card.top }}px; background-color: #FFFFFF" @click="playCustom(card.index)">
+            <text class="card-no">{{ card.no }}</text>
+            <text class="card-diff">{{ card.diffLabel }}</text>
+          </div>
+        </block>
+        <block if="{{ card.page === pageIndex && card.type === 'add' }}">
+          <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #D9D4CC"></div>
+          <div class="abs card add-card" style="left: {{ card.left }}px; top: {{ card.top }}px">
+            <text class="empty-plus">+</text>
           </div>
         </block>
       </block>
       <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
       <div class="abs prog" style="left: 18px; top: 395px">
-        <text class="prog-txt">{{ pageIndex === 1 ? '1/6' : '7/12' }}</text>
+        <text class="prog-txt">{{ pageIndex === 1 ? '01-06' : '07-12' }}</text>
       </div>
     </stack>
     <div class="abs pagination" style="left: 0px; top: 446px">
-      <div class="page-dot" style="background-color: {{ pageIndex === 0 ? '#FF5B8D' : '#F3EFE7' }}"></div>
-      <div class="page-dot" style="background-color: {{ pageIndex === 1 ? '#FF5B8D' : '#F3EFE7' }}"></div>
-      <div class="page-dot" style="background-color: {{ pageIndex === 2 ? '#FF5B8D' : '#F3EFE7' }}"></div>
+      <div class="page-dot" for="{{ pageDots }}" style="background-color: {{ $item.active ? '#FF5B8D' : '#F3EFE7' }}"></div>
     </div>
   </stack>
 </template>
@@ -64,7 +67,7 @@ import router from '@system.router'
 import { OFFICIAL, DIFFICULTY_LABEL } from '../../common/levels.js'
 import { returnToPage } from '../../common/navigation.js'
 
-import CustomSlots from '../../common/custom-slots.js'
+import CustomLevels from '../../common/custom-levels.js'
 
 const DIFF_SHORT = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', expert: 'EXPERT' }
 
@@ -74,28 +77,31 @@ export default {
     progress: 0,
     officialCount: OFFICIAL.length,
     officialCards: [],
-    slots: []
+    customCards: [],
+    customCount: 0,
+    hasSecondCustomPage: false,
+    pageDots: []
   },
 
   onInit() {
     this.active = false
     this.buildCards()
-    this.refreshSlots()
+    this.refreshCustomLevels()
   },
 
   onShow() {
     this.active = true
     this.leaving = false
     this.buildCards()
-    this.refreshSlots()
+    this.refreshCustomLevels()
     if (!this.unsubscribeSlots) {
-      this.unsubscribeSlots = this.$app.$def.slotStore.subscribe((slot, slim) => this.applySlot(slot, slim))
+      this.unsubscribeSlots = this.$app.$def.slotStore.subscribe(() => this.refreshCustomLevels())
     }
     this.$app.$def.progressReady.then(() => {
       if (this.active) this.buildCards()
     })
     this.$app.$def.slotStore.ready.then(() => {
-      if (this.active) this.refreshSlots()
+      if (this.active) this.refreshCustomLevels()
     })
   },
 
@@ -132,24 +138,47 @@ export default {
     this.officialCards = cards
   },
 
-  refreshSlots() {
+  refreshCustomLevels() {
     const store = this.$app.$def.slotStore
-    this.slots = CustomSlots.keys.map((key, i) => {
-      const level = store.get(key)
-      return {
-        key,
-        no: String(i + 1),
-        page: 1 + Math.floor(i / 6),
-        left: 15 + (i % 2) * 87,
-        top: 148 + Math.floor((i % 6) / 2) * 76,
+    const levels = store.list()
+    const cards = []
+    for (let index = 0; index < levels.length; index++) {
+      const level = levels[index]
+      const localIndex = index % CustomLevels.CUSTOM_PAGE_SIZE
+      cards.push({
+        type: 'level',
+        index,
+        no: index + 1 < 10 ? '0' + (index + 1) : String(index + 1),
+        page: 1 + Math.floor(index / CustomLevels.CUSTOM_PAGE_SIZE),
         level,
-        diffLabel: level ? DIFFICULTY_LABEL[level.difficulty] || '自定义' : ''
-      }
-    })
+        diffLabel: DIFFICULTY_LABEL[level.difficulty] || '自定义',
+        left: 15 + (localIndex % 2) * 87,
+        top: 148 + Math.floor(localIndex / 2) * 76
+      })
+    }
+    const count = levels.length
+    if (count < CustomLevels.MAX_CUSTOM_LEVELS && (count === 0 || count % CustomLevels.CUSTOM_PAGE_SIZE !== 0)) {
+      const localIndex = count % CustomLevels.CUSTOM_PAGE_SIZE
+      cards.push({
+        type: 'add',
+        index: count,
+        page: 1 + Math.floor(count / CustomLevels.CUSTOM_PAGE_SIZE),
+        left: 15 + (localIndex % 2) * 87,
+        top: 148 + Math.floor(localIndex / 2) * 76
+      })
+    }
+    this.customCount = count
+    this.hasSecondCustomPage = count >= 7
+    this.customCards = cards
+    this.pageIndex = Math.min(this.pageIndex, this.maxPageIndex())
+    const pageCount = this.hasSecondCustomPage ? 3 : 2
+    const dots = []
+    for (let index = 0; index < pageCount; index++) dots.push({ index, active: index === this.pageIndex })
+    this.pageDots = dots
   },
 
-  applySlot() {
-    this.refreshSlots()
+  maxPageIndex() {
+    return this.hasSecondCustomPage ? 2 : 1
   },
 
   /** 单页手势只改变索引，不挂载隐藏的 Custom 页面。 */
@@ -169,7 +198,7 @@ export default {
     if (dx > 0) {
       if (start.index === 0) this.goHome()
       else this.pageIndex = start.index - 1
-    } else this.pageIndex = Math.min(2, start.index + 1)
+    } else if (start.index < this.maxPageIndex()) this.pageIndex = start.index + 1
   },
 
   goHome() {
@@ -191,12 +220,12 @@ export default {
     router.push({ uri: '/pages/game', params: { pack: 'official', index: String(i) } })
   },
 
-  playCustom(slot) {
-    const s = this.slots[CustomSlots.keys.indexOf(slot)]
-    if (this.leaving || !s || !s.level) return
+  playCustom(index) {
+    const card = this.customCards.find((item) => item.type === 'level' && item.index === index)
+    if (this.leaving || !card) return
     this.leaving = true
     this.$app.$def.feedback()
-    router.push({ uri: '/pages/game', params: { pack: 'custom_' + slot, index: '0' } })
+    router.push({ uri: '/pages/game', params: { pack: 'custom', index: String(index) } })
   }
 }
 </script>
@@ -284,6 +313,9 @@ export default {
   font-size: 38px;
   color: #66615b;
   text-align: center;
+}
+.add-card {
+  background-color: #f3efe7;
 }
 .pagination {
   width: 192px;

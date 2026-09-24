@@ -1,18 +1,16 @@
-/**
- * MazeSync：手环端 maze 消息模块（put / list / clear）
- * 通过 globalThis.conn.register(MazeSync) 注册；tag 固定为 'maze'
- */
+/** 手环端连续自定义关卡协议：list / add / replace / remove。 */
 import { interconnModule } from '../utils/interconn.js'
 import MazeValidate from './maze-validate.js'
-
-import CustomSlots from './custom-slots.js'
+import CustomLevels from './custom-levels.js'
 
 const ACK_TIMEOUT = 8000
 
+function validIndex(index) {
+  return typeof index === 'number' && index % 1 === 0 && index >= 0 && index < CustomLevels.MAX_CUSTOM_LEVELS
+}
+
 export default class MazeSync extends interconnModule {
   static name = 'maze'
-
-  /** 注册前由 App 注入唯一槽位缓存。 */
   static store = null
 
   constructor({ send, addListener, removeListener }) {
@@ -23,7 +21,7 @@ export default class MazeSync extends interconnModule {
     addListener((payload) => this.onMessage(payload))
   }
 
-  /** 发送并在 ACK_TIMEOUT 内放弃等待 */
+  /** interconn.send 会补上 tag=maze；保留现有 8 秒通信超时。 */
   reply(payload) {
     if (this.destroyed) return
     let done = false
@@ -44,48 +42,68 @@ export default class MazeSync extends interconnModule {
   }
 
   onMessage(payload) {
-    if (!payload) return
-    if (payload.stat === 'put') this.handlePut(payload)
-    else if (payload.stat === 'list') this.handleList()
-    else if (payload.stat === 'clear') this.handleClear(payload)
+    if (!payload || !this.store) return
+    if (payload.stat === 'list') return this.handleList()
+    if (payload.stat === 'add') return this.handleAdd(payload)
+    if (payload.stat === 'replace') return this.handleReplace(payload)
+    if (payload.stat === 'remove') return this.handleRemove(payload)
   }
 
-  handlePut(payload) {
-    const slot = CustomSlots.keys.indexOf(payload.slot) >= 0 ? payload.slot : null
-    if (!slot) {
-      this.reply({ type: 'ack', slot: String(payload.slot || ''), ok: false, message: 'bad slot' })
-      return
+  handleAdd(payload) {
+    const result = MazeValidate.validateLevel(payload.level, false)
+    if (!result.ok) {
+      this.reply({ type: 'ack', stat: 'add', ok: false, message: result.message })
+      return Promise.resolve({ ok: false, message: result.message })
     }
-    const r = MazeValidate.validateLevel(payload.level, false)
-    if (!r.ok) {
-      this.reply({ type: 'ack', slot, ok: false, message: r.message })
-      return
+    return this.store.appendValidated(result).then((saved) => {
+      const response = { type: 'ack', stat: 'add', ok: saved.ok, message: saved.message || '' }
+      if (saved.ok) response.index = saved.index
+      this.reply(response)
+      return saved
+    })
+  }
+
+  handleReplace(payload) {
+    if (!validIndex(payload.index)) {
+      const response = { ok: false, message: 'bad index' }
+      this.reply({ type: 'ack', stat: 'replace', index: payload.index, ok: false, message: response.message })
+      return Promise.resolve(response)
     }
-    this.store.saveValidated(slot, r).then((ok) => {
-      this.reply({ type: 'ack', slot, ok, message: ok ? '' : 'storage write failed' })
+    const result = MazeValidate.validateLevel(payload.level, false)
+    if (!result.ok) {
+      this.reply({ type: 'ack', stat: 'replace', index: payload.index, ok: false, message: result.message })
+      return Promise.resolve({ ok: false, message: result.message })
+    }
+    return this.store.replaceValidated(payload.index, result).then((saved) => {
+      this.reply({ type: 'ack', stat: 'replace', index: payload.index, ok: saved.ok, message: saved.message || '' })
+      return saved
+    })
+  }
+
+  handleRemove(payload) {
+    if (!validIndex(payload.index)) {
+      this.reply({ type: 'ack', stat: 'remove', index: payload.index, ok: false, message: 'bad index' })
+      return Promise.resolve({ ok: false, message: 'bad index' })
+    }
+    return this.store.remove(payload.index).then((removed) => {
+      this.reply({ type: 'ack', stat: 'remove', index: payload.index, ok: removed.ok, message: removed.message || '' })
+      return removed
     })
   }
 
   handleList() {
-    this.store.init().then(() => {
-      const slots = []
-      const keys = CustomSlots.keys
-      keys.forEach((slot) => {
-        const s = this.store.get(slot)
-        if (s) slots.push({ slot, id: s.id || '', name: s.name || '', cols: s.cols, rows: s.rows })
-      })
-      this.reply({ type: 'list', slots })
-    })
-  }
-
-  handleClear(payload) {
-    const slot = CustomSlots.keys.indexOf(payload.slot) >= 0 ? payload.slot : null
-    if (!slot) {
-      this.reply({ type: 'ack', slot: '', ok: false, message: 'bad slot' })
-      return
-    }
-    this.store.clear(slot).then((ok) => {
-      this.reply({ type: 'ack', slot, ok, message: ok ? 'cleared' : 'storage delete failed' })
+    return this.store.init().then((ready) => {
+      const levels = ready ? this.store.list().map((level, index) => ({
+        index,
+        id: level.id || '',
+        name: level.name || '',
+        cols: level.cols,
+        rows: level.rows
+      })) : []
+      const response = { type: 'list', levels }
+      if (!ready) response.ok = false
+      this.reply(response)
+      return response
     })
   }
 

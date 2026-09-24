@@ -1,7 +1,7 @@
 const assert = require('assert')
 const fs = require('fs')
 const vm = require('vm')
-const CustomSlots = require('../src/common/custom-slots.js')
+const CustomLevels = require('../src/common/custom-levels.js')
 const MazeCore = require('../src/common/maze-core.js')
 const MazeValidate = require('../src/common/maze-validate.js')
 const Physics = require('../src/common/physics.js')
@@ -11,7 +11,7 @@ function load(path, globals) {
   let code = fs.readFileSync(path, 'utf8')
   if (path.endsWith('.ux')) code = code.match(/<script>([\s\S]*?)<\/script>/)[1]
   code = code.replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
-  const scope = Object.assign({ module: { exports: {} }, CustomSlots, console, Promise, setTimeout, clearTimeout }, globals)
+  const scope = Object.assign({ module: { exports: {} }, CustomLevels, console, Promise, setTimeout, clearTimeout }, globals)
   vm.runInNewContext(code, scope)
   return scope.module.exports
 }
@@ -28,12 +28,12 @@ for (const level of OFFICIAL) {
 }
 
 async function cacheAndSync() {
-  const pendingReads = []
+  const disk = { custom_storage_version: '2', custom_01: JSON.stringify(MazeValidate.stripCrc(OFFICIAL[0])) }
+  let reads = 0
   const writes = []
-  const disk = {}
   let failWrite = false
   const storage = {
-    get: (options) => pendingReads.push(options),
+    get(options) { reads++; options.success(Object.prototype.hasOwnProperty.call(disk, options.key) ? disk[options.key] : '') },
     set(options) {
       writes.push(options.value)
       if (failWrite) options.fail()
@@ -50,32 +50,27 @@ async function cacheAndSync() {
   const store = new SlotStore()
   const ready = store.init()
   assert.strictEqual(store.init(), ready)
-  assert.equal(pendingReads.length, 12)
-  const first = MazeValidate.stripCrc(OFFICIAL[0])
+  assert.strictEqual(await ready, true)
+  assert.equal(reads, 13, '版本标记和 12 个数字键各读取一次')
+  assert.equal(store.count(), 1)
   const second = { ...MazeValidate.stripCrc(OFFICIAL[1]), name: '同步关卡' }
-  // 启动读取未结束时收到同步，旧读取不能覆盖新写入。
-  const saving = store.saveValidated('a', MazeValidate.validateStoredLevel(second, false))
-  await drain()
-  assert.equal(writes.length, 0)
-  pendingReads[0].success(JSON.stringify(first))
-  pendingReads[1].success('{损坏内容')
-  pendingReads.slice(2).forEach((read) => read.success(''))
-  assert.equal(await saving, true)
-  assert.equal(store.get('a').name, '同步关卡')
-  assert.equal(store.get('b'), null)
+  const appended = await store.append(second)
+  assert.strictEqual(appended.ok, true)
+  assert.strictEqual(appended.index, 1)
+  assert.equal(store.get(1).name, '同步关卡')
   assert.equal(prepares, 0)
-  const runningLevel = store.getLevel('a')
-  assert.strictEqual(store.getLevel('a'), runningLevel)
+  const runningLevel = store.getLevel(1)
+  assert.strictEqual(store.getLevel(1), runningLevel)
   assert.equal(prepares, 1)
   failWrite = true
-  assert.equal(await store.save('a', OFFICIAL[2]), false)
-  assert.strictEqual(store.getLevel('a'), runningLevel)
+  assert.strictEqual((await store.replace(1, OFFICIAL[2])).ok, false)
+  assert.strictEqual(store.getLevel(1), runningLevel)
   failWrite = false
-  await Promise.all([store.save('a', OFFICIAL[2]), store.save('a', OFFICIAL[3])])
-  assert.strictEqual(store.getLevel('a'), OFFICIAL[3])
+  await Promise.all([store.replace(1, OFFICIAL[2]), store.replace(1, OFFICIAL[3])])
+  assert.strictEqual(store.getLevel(1), OFFICIAL[3])
   assert.equal(prepares, 1, '本地已生成的 render 不应重复构建')
   assert.equal(runningLevel.name, '同步关卡', '同步不能改变进行中的关卡')
-  assert.equal(JSON.parse(disk.custom_a).name, OFFICIAL[3].name)
+  assert.equal(JSON.parse(disk.custom_02).name, OFFICIAL[3].name)
 
   const messages = []
   let listener
@@ -87,21 +82,21 @@ async function cacheAndSync() {
     addListener: (callback) => { listener = callback }, removeListener: () => removed++
   })
   // 不创建 Levels 页面，模拟在 Home/Game/Complete 下同步。
-  for (const pageName of ['Home', 'Game', 'Complete']) {
+  const pageNames = ['Home', 'Game', 'Complete']
+  for (let i = 0; i < pageNames.length; i++) {
+    const pageName = pageNames[i]
     const slim = { ...second, name: pageName }
-    listener({ stat: 'put', slot: 'b', level: { ...slim, crc: MazeValidate.computeCrc(slim) } })
-    await drain()
-    assert.equal(store.get('b').name, pageName)
+    const level = { ...slim, crc: MazeValidate.computeCrc(slim) }
+    await listener({ stat: 'replace', index: 1, level })
+    assert.equal(store.get(1).name, pageName)
     assert.equal(messages[messages.length - 1].ok, true)
   }
-  listener({ stat: 'list' })
-  await drain()
-  assert.equal(messages[messages.length - 1].slots.length, 2)
-  assert.equal(pendingReads.length, 12, 'list 和同步不得重复读取 storage')
-  listener({ stat: 'clear', slot: 'b' })
-  await drain()
-  assert.equal(store.get('b'), null)
-  assert.equal(disk.custom_b, undefined)
+  await listener({ stat: 'list' })
+  assert.equal(messages[messages.length - 1].levels.length, 2)
+  assert.equal(reads, 13, 'list 和同步不得重复读取 storage')
+  await listener({ stat: 'remove', index: 1 })
+  assert.equal(store.count(), 1)
+  assert.equal(disk.custom_02, undefined)
 
   const definition = load('src/pages/levels/levels.ux', { OFFICIAL, DIFFICULTY_LABEL: {} })
   const page = Object.assign({}, definition, JSON.parse(JSON.stringify(definition.private)), {
@@ -109,12 +104,12 @@ async function cacheAndSync() {
   })
   page.onInit()
   for (let i = 0; i < 20; i++) { page.onShow(); await drain(); page.onHide() }
-  assert.equal(pendingReads.length, 12)
+  assert.equal(reads, 13)
   assert.equal(prepares, 1, '关卡卡片不能生成渲染数据')
   assert.equal(store.listeners.length, 0)
   page.onShow()
-  await store.save('b', OFFICIAL[5])
-  assert.equal(page.slots[1].level.name, 'LV 6')
+  await store.append(OFFICIAL[5])
+  assert.equal(page.customCards[1].level.name, 'LV 6')
   page.onHide()
   sync.destroy()
   assert.equal(removed, 1)
@@ -131,7 +126,7 @@ async function cacheAndSync() {
   assert.equal(registrations, 1)
   app.onDestroy()
   assert.equal(destructions, 1)
-  console.log('✓ 12 槽启动各读一次、启动读写竞争、写失败、写入顺序、全局同步、20 次页面返回零 IO/零 prepare')
+  console.log('✓ 版本与连续列表启动读取、写失败保护、结构队列、全局同步、20 次页面返回零额外 IO/零 prepare')
 }
 
 function gameBudget() {

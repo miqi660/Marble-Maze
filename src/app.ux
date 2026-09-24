@@ -18,7 +18,7 @@ export default {
     /** 已通关的 Official 关卡数（进度） */
     progress: 0,
     /** 关卡包定义 */
-    PACKS: { official: 'Official', custom_a: 'Custom A', custom_b: 'Custom B' }
+    PACKS: { official: 'Official', custom: 'Custom' }
   },
 
   onCreate() {

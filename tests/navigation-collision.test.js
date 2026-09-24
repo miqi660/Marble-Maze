@@ -1,14 +1,14 @@
 const assert = require('assert')
 const fs = require('fs')
 const vm = require('vm')
-const CustomSlots = require('../src/common/custom-slots.js')
+const CustomLevels = require('../src/common/custom-levels.js')
 const Physics = require('../src/common/physics.js')
 const MazeCore = require('../src/common/maze-core.js')
 
 function readUx(path, globals) {
   const script = fs.readFileSync(path, 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
-  const context = Object.assign({ module: { exports: {} }, CustomSlots, console, Promise }, globals)
+  const context = Object.assign({ module: { exports: {} }, CustomLevels, console, Promise }, globals)
   vm.runInNewContext(script, context)
   return context.module.exports
 }
@@ -65,8 +65,7 @@ async function navigationTest() {
   complete.onBackPress()
   assert.deepStrictEqual(calls[1], ['replace', '/pages/levels'])
 
-  const slotCache = { a: null, b: null }
-  const store = { get: (slot) => slotCache[slot], ready: Promise.resolve(), subscribe: () => () => {} }
+  const store = { list: () => [], ready: Promise.resolve(true), subscribe: () => () => {} }
   const levels = readUx('src/pages/levels/levels.ux', {
     router, returnToPage, OFFICIAL: new Array(6).fill({ difficulty: 'easy' }), DIFFICULTY_LABEL: {},
 
@@ -83,6 +82,13 @@ async function navigationTest() {
   assert.ok(!('visible' in page), '页面显示不能再控制整树销毁')
   await Promise.resolve()
   assert.equal(page.officialCards.length, 6)
+  page.pageIndex = 0
+  page.onTouchStart({ touches: [{ clientX: 150, clientY: 200 }] })
+  page.onTouchEnd({ changedTouches: [{ clientX: 40, clientY: 200 }] })
+  assert.equal(page.pageIndex, 1, 'Official 左滑进入自定义第一页')
+  page.onTouchStart({ touches: [{ clientX: 40, clientY: 200 }] })
+  page.onTouchEnd({ changedTouches: [{ clientX: 150, clientY: 200 }] })
+  assert.equal(page.pageIndex, 0, '自定义第一页右滑返回 Official')
   const before = calls.length
   page.pageIndex = 1
   page.onTouchStart({ touches: [{ clientX: 20, clientY: 100 }] })

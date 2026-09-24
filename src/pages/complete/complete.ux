@@ -38,6 +38,7 @@
 <script>
 import router from '@system.router'
 import { OFFICIAL } from '../../common/levels.js'
+import CustomLevels from '../../common/custom-levels.js'
 import { returnToPage } from '../../common/navigation.js'
 
 export default {
@@ -51,12 +52,20 @@ export default {
     hasNext: false
   },
   onInit() {
-    this.index = parseInt(this.index, 10) || 0
+    const parsedIndex = parseInt(this.index, 10)
+    const requestedIndex = isNaN(parsedIndex) ? 0 : parsedIndex
     if (this.pack === 'official') {
+      this.index = Math.max(0, Math.min(OFFICIAL.length - 1, requestedIndex))
       this.levelName = 'LEVEL ' + (this.index + 1)
       this.hasNext = this.index < OFFICIAL.length - 1
+    } else if (this.pack === 'custom') {
+      this.index = Math.max(0, Math.min(CustomLevels.MAX_CUSTOM_LEVELS - 1, requestedIndex))
+      const no = this.index + 1
+      this.levelName = 'CUSTOM ' + (no < 10 ? '0' + no : String(no))
+      this.hasNext = false
     } else {
-      this.levelName = 'CUSTOM'
+      this.index = 0
+      this.levelName = 'LEVEL'
       this.hasNext = false
     }
   },

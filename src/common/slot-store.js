@@ -1,52 +1,226 @@
 import storage from '@system.storage'
 import MazeValidate from './maze-validate.js'
+import CustomLevels from './custom-levels.js'
 
-import CustomSlots from './custom-slots.js'
+const VERSION_KEY = 'custom_storage_version'
+const STORAGE_VERSION = '2'
+// LEGACY MIGRATION ONLY: 一次性读取旧版 custom_a..custom_l 数据。
+const LEGACY_CUSTOM_LEVEL_KEYS = [
+  'custom_a', 'custom_b', 'custom_c', 'custom_d', 'custom_e', 'custom_f',
+  'custom_g', 'custom_h', 'custom_i', 'custom_j', 'custom_k', 'custom_l'
+]
 
-const SLOT_KEYS = {}
-CustomSlots.keys.forEach((slot) => { SLOT_KEYS[slot] = 'custom_' + slot })
+function isIndex(index) {
+  return typeof index === 'number' && index % 1 === 0 && index >= 0 && index < CustomLevels.MAX_CUSTOM_LEVELS
+}
 
-/** App 持有的唯一槽位缓存；页面只读，所有写入串行提交到存储和缓存。 */
+function getValue(key) {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (result) => {
+      if (settled) return
+      settled = true
+      resolve(result)
+    }
+    try {
+      storage.get({
+        key,
+        success(value) { finish({ ok: true, value }) },
+        fail() { finish({ ok: false, value: null }) }
+      })
+    } catch (e) {
+      finish({ ok: false, value: null })
+    }
+  })
+}
+
+function setValue(key, value) {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (ok) => {
+      if (settled) return
+      settled = true
+      resolve(ok)
+    }
+    try {
+      storage.set({ key, value, success() { finish(true) }, fail() { finish(false) } })
+    } catch (e) {
+      finish(false)
+    }
+  })
+}
+
+function deleteValue(key) {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (ok) => {
+      if (settled) return
+      settled = true
+      resolve(ok)
+    }
+    try {
+      storage.delete({ key, success() { finish(true) }, fail() { finish(false) } })
+    } catch (e) {
+      finish(false)
+    }
+  })
+}
+
+function parseStored(value) {
+  if (value === '' || value === null || typeof value === 'undefined') return null
+  try {
+    const raw = typeof value === 'string' ? JSON.parse(value) : value
+    const result = MazeValidate.validateStoredLevel(raw, false)
+    return result.ok ? { slim: result.slim, level: null } : null
+  } catch (e) {
+    return null
+  }
+}
+
+function rawValue(value) {
+  if (typeof value === 'string') return value
+  return JSON.stringify(value)
+}
+
+/** App 持有的唯一连续关卡缓存；所有结构写入共享同一个队列。 */
 export default class SlotStore {
   constructor() {
-    this.entries = {}
+    this.entries = []
     this.listeners = []
     this.ready = null
-    this.queues = {}
-    CustomSlots.keys.forEach((slot) => {
-      this.entries[slot] = null
-      this.queues[slot] = Promise.resolve()
-    })
+    this.writeQueue = Promise.resolve()
+    this.initialized = false
+  }
+
+  enqueueStructure(operation) {
+    const result = this.writeQueue.then(operation, operation)
+    this.writeQueue = result.then(() => undefined, () => undefined)
+    return result
   }
 
   init() {
     if (this.ready) return this.ready
-    this.ready = Promise.all(CustomSlots.keys.map((slot) => new Promise((resolve) => {
-      storage.get({
-        key: SLOT_KEYS[slot],
-        success: (value) => {
-          try {
-            const result = MazeValidate.validateStoredLevel(value ? JSON.parse(value) : null, false)
-            if (result.ok) this.entries[slot] = { slim: result.slim, level: null }
-          } catch (e) {}
-          resolve()
-        },
-        fail: () => resolve()
-      })
-    }).catch(() => {})))
+    this.ready = this.enqueueStructure(() => this.initialize()).catch((error) => {
+      console.log('[maze] 自定义关卡初始化失败: ' + error)
+      return false
+    })
     return this.ready
   }
 
-  get(slot) {
-    const entry = this.entries[slot]
+  async initialize() {
+    const version = await getValue(VERSION_KEY)
+    if (!version.ok) return false
+    const loaded = String(version.value || '') === STORAGE_VERSION
+      ? await this.loadCurrent()
+      : await this.migrateLegacy()
+    this.initialized = loaded
+    return loaded
+  }
+
+  async loadCurrent() {
+    const raw = []
+    for (let index = 0; index < CustomLevels.MAX_CUSTOM_LEVELS; index++) {
+      const result = await getValue(CustomLevels.storageKey(index))
+      if (!result.ok) return false
+      raw.push(result.value)
+    }
+
+    const compacted = []
+    let needsRepair = false
+    for (let index = 0; index < raw.length; index++) {
+      const entry = parseStored(raw[index])
+      if (!entry) {
+        if (raw[index] !== '' && raw[index] !== null && typeof raw[index] !== 'undefined') needsRepair = true
+        continue
+      }
+      if (index !== compacted.length) needsRepair = true
+      compacted.push(entry)
+    }
+
+    if (needsRepair && !(await this.persistEntries(compacted, raw))) return false
+    this.entries = compacted
+    return true
+  }
+
+  async migrateLegacy() {
+    const legacy = []
+    const migrated = []
+    // 按旧槽原顺序读取，并把有效记录压成连续列表。
+    for (let index = 0; index < LEGACY_CUSTOM_LEVEL_KEYS.length; index++) {
+      const result = await getValue(LEGACY_CUSTOM_LEVEL_KEYS[index])
+      if (!result.ok) return false
+      legacy.push(result.value)
+      const entry = parseStored(result.value)
+      if (entry) migrated.push(entry)
+    }
+
+    const current = []
+    for (let index = 0; index < CustomLevels.MAX_CUSTOM_LEVELS; index++) {
+      const result = await getValue(CustomLevels.storageKey(index))
+      if (!result.ok) return false
+      current.push(result.value)
+    }
+
+    // 先完成全部新键写入；失败时旧键仍未触碰，可安全重试。
+    if (!(await this.persistEntries(migrated, current))) return false
+
+    for (let index = 0; index < LEGACY_CUSTOM_LEVEL_KEYS.length; index++) {
+      if (!(await deleteValue(LEGACY_CUSTOM_LEVEL_KEYS[index]))) {
+        await this.restoreLegacy(legacy)
+        return false
+      }
+    }
+    if (!(await setValue(VERSION_KEY, STORAGE_VERSION))) {
+      await this.restoreLegacy(legacy)
+      return false
+    }
+
+    this.entries = migrated
+    return true
+  }
+
+  async persistEntries(entries, previousValues) {
+    for (let index = 0; index < CustomLevels.MAX_CUSTOM_LEVELS; index++) {
+      const key = CustomLevels.storageKey(index)
+      let ok = true
+      if (index < entries.length) ok = await setValue(key, JSON.stringify(entries[index].slim))
+      else if (previousValues && previousValues[index] !== '' && previousValues[index] !== null && typeof previousValues[index] !== 'undefined') {
+        ok = await deleteValue(key)
+      }
+      if (!ok) return false
+    }
+    return true
+  }
+
+  async restoreLegacy(values) {
+    for (let index = 0; index < LEGACY_CUSTOM_LEVEL_KEYS.length; index++) {
+      const key = LEGACY_CUSTOM_LEVEL_KEYS[index]
+      const value = values[index]
+      if (value === '' || value === null || typeof value === 'undefined') await deleteValue(key)
+      else await setValue(key, rawValue(value))
+    }
+  }
+
+  count() {
+    return this.entries.length
+  }
+
+  get(index) {
+    if (!isIndex(index)) return null
+    const entry = this.entries[index]
     return entry ? entry.slim : null
   }
 
-  getLevel(slot) {
-    const entry = this.entries[slot]
+  getLevel(index) {
+    if (!isIndex(index)) return null
+    const entry = this.entries[index]
     if (!entry) return null
     if (!entry.level) entry.level = MazeValidate.prepareLevel(entry.slim)
     return entry.level
+  }
+
+  list() {
+    return this.entries.map((entry) => entry.slim)
   }
 
   subscribe(listener) {
@@ -57,43 +231,92 @@ export default class SlotStore {
     }
   }
 
-  save(slot, level) {
+  notify(change) {
+    this.listeners.slice().forEach((listener) => {
+      try { listener(change, this.list()) } catch (e) { console.log('[maze] 自定义关卡刷新失败: ' + e) }
+    })
+  }
+
+  makeEntry(result) {
+    if (!result || !result.ok || !result.slim) return null
+    const checked = MazeValidate.validateStoredLevel(result.slim, false)
+    if (!checked.ok) return null
+    const level = result.level && result.level.render ? result.level : null
+    return { slim: checked.slim, level }
+  }
+
+  append(level) {
     const result = MazeValidate.validateStoredLevel(level, false)
-    // 本地生成器已生成 render，直接复用，不再 decode/compileRuns。
-    if (result.ok && level.render) result.level = level
-    return this.saveValidated(slot, result)
+    if (result.ok && level && level.render) result.level = level
+    return this.appendValidated(result)
   }
 
-  saveValidated(slot, result) {
-    if (CustomSlots.keys.indexOf(slot) < 0 || !result.ok) return Promise.resolve(false)
-    return this.enqueue(slot, { slim: result.slim, level: result.level })
+  appendValidated(result) {
+    const entry = this.makeEntry(result)
+    if (!entry) return Promise.resolve({ ok: false, message: 'invalid level' })
+    return this.init().then((ready) => {
+      if (!ready) return { ok: false, message: 'storage initialization failed' }
+      return this.enqueueStructure(async () => {
+        if (!this.initialized) return { ok: false, message: 'storage initialization failed' }
+        if (this.entries.length >= CustomLevels.MAX_CUSTOM_LEVELS) return { ok: false, message: 'custom levels full' }
+        const index = this.entries.length
+        if (!(await setValue(CustomLevels.storageKey(index), JSON.stringify(entry.slim)))) return { ok: false, message: 'storage write failed' }
+        this.entries.push(entry)
+        this.notify({ type: 'add', index })
+        return { ok: true, index, message: '' }
+      })
+    }).catch(() => ({ ok: false, message: 'storage write failed' }))
   }
 
-  clear(slot) {
-    if (CustomSlots.keys.indexOf(slot) < 0) return Promise.resolve(false)
-    return this.enqueue(slot, null)
+  replace(index, level) {
+    const result = MazeValidate.validateStoredLevel(level, false)
+    if (result.ok && level && level.render) result.level = level
+    return this.replaceValidated(index, result)
   }
 
-  enqueue(slot, entry) {
-    const operation = this.queues[slot].then(() => this.init()).then(() => new Promise((resolve) => {
-      const options = {
-        key: SLOT_KEYS[slot],
-        success: () => {
-          this.entries[slot] = entry
-          // 先完成写入，再通知可见页面；单个页面回调异常不影响持久化结果。
-          resolve(true)
-          this.listeners.slice().forEach((listener) => {
-            try { listener(slot, this.get(slot)) } catch (e) { console.log('[maze] 槽位刷新失败: ' + e) }
-          })
-        },
-        fail: () => resolve(false)
-      }
-      if (entry) {
-        options.value = JSON.stringify(entry.slim)
-        storage.set(options)
-      } else storage.delete(options)
-    })).catch(() => false)
-    this.queues[slot] = operation
-    return operation
+  replaceValidated(index, result) {
+    const entry = this.makeEntry(result)
+    if (!isIndex(index) || !entry) return Promise.resolve({ ok: false, message: 'bad index' })
+    return this.init().then((ready) => {
+      if (!ready) return { ok: false, message: 'storage initialization failed' }
+      return this.enqueueStructure(async () => {
+        if (!this.initialized) return { ok: false, message: 'storage initialization failed' }
+        if (index >= this.entries.length) return { ok: false, message: 'bad index' }
+        if (!(await setValue(CustomLevels.storageKey(index), JSON.stringify(entry.slim)))) return { ok: false, message: 'storage write failed' }
+        this.entries[index] = entry
+        this.notify({ type: 'replace', index })
+        return { ok: true, index, message: '' }
+      })
+    }).catch(() => ({ ok: false, message: 'storage write failed' }))
+  }
+
+  remove(index) {
+    if (!isIndex(index)) return Promise.resolve({ ok: false, message: 'bad index' })
+    return this.init().then((ready) => {
+      if (!ready) return { ok: false, message: 'storage initialization failed' }
+      return this.enqueueStructure(async () => {
+        if (!this.initialized) return { ok: false, message: 'storage initialization failed' }
+        if (index >= this.entries.length) return { ok: false, message: 'bad index' }
+        const snapshot = this.entries.slice()
+        let ok = true
+        for (let current = index; current < snapshot.length - 1; current++) {
+          if (!(await setValue(CustomLevels.storageKey(current), JSON.stringify(snapshot[current + 1].slim)))) {
+            ok = false
+            break
+          }
+        }
+        if (ok) ok = await deleteValue(CustomLevels.storageKey(snapshot.length - 1))
+        if (!ok) {
+          // storage 没有多键事务；失败时尽力恢复原列表，并保留原缓存。
+          for (let current = index; current < snapshot.length; current++) {
+            await setValue(CustomLevels.storageKey(current), JSON.stringify(snapshot[current].slim))
+          }
+          return { ok: false, message: 'storage write failed' }
+        }
+        this.entries.splice(index, 1)
+        this.notify({ type: 'remove', index })
+        return { ok: true, index, message: '' }
+      })
+    }).catch(() => ({ ok: false, message: 'storage write failed' }))
   }
 }
