@@ -21,6 +21,7 @@ function simulate(hz) {
     state: { x: 50, y: 50, vx: 0, vy: 0 }, ax: -4.9, ay: 0, syncBall() {}
   })
   for (let i = 1; i <= hz; i++) { now = Math.round(i * 1000 / hz); page.tick() }
+  page.renderFrame()
   assert.equal(page.timeText, '01.0')
   return page
 }
@@ -29,6 +30,7 @@ for (const hz of [25, 60]) assert.deepStrictEqual(simulate(hz).state, reference.
 const stalled = simulate(50)
 now += 2000
 stalled.tick()
+stalled.renderFrame()
 assert.equal(stalled.timeText, '03.0')
 assert.ok(stalled.accumulator < 20)
 assert.equal(Physics.AXIS_SIGN.y, 1)

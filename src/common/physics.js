@@ -22,7 +22,9 @@
     MAX_SPEED: 12,
     RESTITUTION: 0.2, // 法向速度 × -0.2
     GOAL_DIST: 0.35,
-    SUB_STEP: 0.14 // 每子步最大位移 = R/2
+    SUB_STEP: 0.14, // 每子步最大位移 = R/2
+    MAX_SUB_STEPS: 2, // 12 cell/s × 0.02s / 0.14，向上取整
+    MAX_COLLISION_PASSES: 4
   };
 
   // 传感器轴向映射，真机实测后校正
@@ -96,26 +98,21 @@
     var ay = seg[1];
     var bx = seg[2];
     var by = seg[3];
-    var dx = bx - ax;
-    var dy = by - ay;
-    var len2 = dx * dx + dy * dy;
-    var t = ((state.x - ax) * dx + (state.y - ay) * dy) / len2;
-    t = clamp(t, 0, 1);
-    var px = ax + dx * t;
-    var py = ay + dy * t;
+    // 迷宫只有水平/竖直墙：直接截取轴向最近点，省去投影点积和除法。
+    var horizontal = ay === by;
+    var px = horizontal ? clamp(state.x, ax, bx) : ax;
+    var py = horizontal ? ay : clamp(state.y, ay, by);
     var nx = state.x - px;
     var ny = state.y - py;
     var dist2 = nx * nx + ny * ny;
     if (dist2 >= R * R) return false;
-    var dist = Math.sqrt(dist2);
+    // 直墙内部接触只需绝对值；圆与墙端点接触才需要开方。
+    var dist = nx === 0 ? Math.abs(ny) : ny === 0 ? Math.abs(nx) : Math.sqrt(dist2);
 
     if (dist < 1e-6) {
       // 球心正好在线段上：取线段法线，方向按速度反向
-      nx = -dy;
-      ny = dx;
-      var nl = Math.sqrt(nx * nx + ny * ny);
-      nx /= nl;
-      ny /= nl;
+      nx = horizontal ? 0 : -1;
+      ny = horizontal ? 1 : 0;
       if (nx * state.vx + ny * state.vy > 0) {
         nx = -nx;
         ny = -ny;
@@ -137,7 +134,7 @@
 
   function resolveCollisions(state, index, cols, rows) {
     var R = CONST.R;
-    for (var pass = 0; pass < 4; pass++) {
+    for (var pass = 0; pass < CONST.MAX_COLLISION_PASSES; pass++) {
       var cx = clamp(Math.floor(state.x), 0, cols - 1);
       var cy = clamp(Math.floor(state.y), 0, rows - 1);
       var segs = index[cy * cols + cx];
@@ -159,19 +156,21 @@
    */
   function step(state, index, cols, rows, tiltX, tiltY, dt) {
     dt = dt || CONST.DT;
+    // 本接口只推进一个固定步；积压由调用方 accumulator 分配，不能扩大子步。
+    dt = clamp(dt, 0, CONST.DT);
     state.vx += CONST.G * tiltX * dt;
     state.vy += CONST.G * tiltY * dt;
     state.vx *= CONST.DAMPING;
     state.vy *= CONST.DAMPING;
-    var speed = Math.sqrt(state.vx * state.vx + state.vy * state.vy);
-    if (speed > CONST.MAX_SPEED) {
-      var k = CONST.MAX_SPEED / speed;
+    var speed2 = state.vx * state.vx + state.vy * state.vy;
+    var maxSpeed2 = CONST.MAX_SPEED * CONST.MAX_SPEED;
+    if (speed2 > maxSpeed2) {
+      var k = CONST.MAX_SPEED / Math.sqrt(speed2);
       state.vx *= k;
       state.vy *= k;
-      speed = CONST.MAX_SPEED;
+      speed2 = maxSpeed2;
     }
-    var disp = speed * dt;
-    var n = Math.max(1, Math.ceil(disp / CONST.SUB_STEP));
+    var n = speed2 * dt * dt <= CONST.SUB_STEP * CONST.SUB_STEP ? 1 : CONST.MAX_SUB_STEPS;
     var sdt = dt / n;
     for (var i = 0; i < n; i++) {
       state.x += state.vx * sdt;

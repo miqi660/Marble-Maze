@@ -17,11 +17,11 @@
     <div class="abs board-shadow" style="left: {{ shadowLeft }}px; top: 105px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
     <div class="abs board" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
 
-    <!-- 板内区域：静态墙段；球跟随 50Hz 物理循环提交最新位置 -->
+    <!-- 板内区域：墙体静态；球以 25Hz 独立提交变换，物理保持 50Hz -->
     <stack class="abs inner" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px">
       <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
       <div class="abs wall" for="{{ walls }}" style="left: {{ $item.l }}px; top: {{ $item.t }}px; width: {{ $item.w }}px; height: {{ $item.h }}px"></div>
-      <div class="abs ball {{ ballClass }}" style="{{ ballPosition }}"></div>
+      <div class="abs ball {{ ballClass }}" style="{{ ballStyle }}"></div>
     </stack>
 
     <div class="abs" style="left: 35px; top: 395px" @click="onRestart">
@@ -61,7 +61,7 @@ export default {
     goalLeft: 0,
     goalTop: 0,
     walls: [],
-    ballPosition: 'left: 0px; top: 0px',
+    ballStyle: { transform: '{"translateX":"0px","translateY":"0px"}' },
     ballClass: 'ball-size-11',
     ballSize: 11
   },
@@ -79,6 +79,7 @@ export default {
     this.lastTick = Date.now()
     this.finished = false
     this.timer = null
+    this.renderTimer = null
     this.offX = 0
     this.offY = 0
     this.ready = false
@@ -182,28 +183,34 @@ export default {
     this.syncBall()
   },
 
-  /** 物理推进后刷新小球，坐标未改变时跳过写入。 */
+  /** 仅显示循环、重来和通关提交变换；基础位置与尺寸保持固定。 */
   syncBall() {
     const cellPx = this.cellPx
     const r = this.ballSize / 2
     const left = Math.round(this.offX + this.state.x * cellPx - r)
     const top = Math.round(this.offY + this.state.y * cellPx - r)
     if (left === this.ballLeft && top === this.ballTop) return
-    // 缓存坐标不绑定模板；每次移动只提交一个位置样式，固定外观不参与解析。
+    // Toolkit 2.x 的对象样式使用序列化变换值，避免重新解析整段 CSS。
     if (left !== this.ballLeft) this.ballLeft = left
     if (top !== this.ballTop) this.ballTop = top
-    this.ballPosition = 'left: ' + left + 'px; top: ' + top + 'px'
+    this.ballStyle = { transform: JSON.stringify({ translateX: left + 'px', translateY: top + 'px' }) }
   },
 
   onShow() {
     if (this.disposed || this.finished || this.running) return
     this.running = true
+    // 每次恢复建立独立会话，隔离上次订阅/定时器的迟到回调。
+    const session = {}
+    this.loopSession = session
+    this.ax = 0
+    this.ay = 0
     const self = this
     try {
       sensor.subscribeAccelerometer({
         interval: 'game',
         callback(ret) {
-          if (!self.running) return
+          if (!self.running || self.loopSession !== session) return
+          if (!ret || typeof ret.x !== 'number' || typeof ret.y !== 'number' || !isFinite(ret.x) || !isFinite(ret.y)) return
           self.ax += (ret.x - self.ax) * LPF
           self.ay += (ret.y - self.ay) * LPF
         },
@@ -216,7 +223,13 @@ export default {
     }
     if (this.timer) clearInterval(this.timer)
     this.lastTick = Date.now()
-    this.timer = setInterval(() => this.tick(), 20)
+    this.lastHudDraw = this.lastTick
+    this.timer = setInterval(() => {
+      if (this.loopSession === session) this.tick()
+    }, 20)
+    this.renderTimer = setInterval(() => {
+      if (this.loopSession === session) this.renderFrame()
+    }, 40)
   },
 
   onHide() {
@@ -239,12 +252,17 @@ export default {
   stopLoop() {
     if (!this.running) return
     this.running = false
+    this.loopSession = null
     try {
       sensor.unsubscribeAccelerometer()
     } catch (e) {}
     if (this.timer) {
       clearInterval(this.timer)
       this.timer = null
+    }
+    if (this.renderTimer) {
+      clearInterval(this.renderTimer)
+      this.renderTimer = null
     }
   },
 
@@ -273,15 +291,23 @@ export default {
     }
     // 超出三步的积压直接丢弃，仅保留不足一步的余量。
     if (this.accumulator >= stepMs) this.accumulator %= stepMs
-    // 定时器自身已限频；再按墙钟限流会在 21/19ms 抖动时丢掉一半刷新。
-    if (steps > 0) {
+    if (won) {
       this.syncBall()
-    }
-    if (won || now - this.lastHudDraw >= 200) {
       this.syncHud()
-      this.lastHudDraw = now
+      this.onWin()
     }
-    if (won) this.onWin()
+  },
+
+  /** 显示循环不补帧，只读取最新状态；HUD 保留时间余量，避免节流漂移。 */
+  renderFrame() {
+    if (!this.running || !this.ready || this.finished || this.disposed) return
+    this.syncBall()
+    const now = Date.now()
+    const hudDelta = now - this.lastHudDraw
+    if (hudDelta >= 200) {
+      this.syncHud()
+      this.lastHudDraw += Math.floor(hudDelta / 200) * 200
+    }
   },
 
   syncHud() {
@@ -359,6 +385,8 @@ export default {
   background-color: #111111;
 }
 .ball {
+  left: 0px;
+  top: 0px;
   background-color: #ffd323;
   border-style: solid;
   border-color: #111111;

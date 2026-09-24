@@ -98,23 +98,39 @@ async function navigationTest() {
   let subscribes = 0
   let unsubscribes = 0
   let clears = 0
+  const timers = new Map()
+  let timerId = 0
   let sensorCallback
   const game = readUx('src/pages/game/game.ux', {
     Physics, returnToPage, gameDisplay: { start() {}, stop() {} },
     sensor: { subscribeAccelerometer(o) { subscribes++; sensorCallback = o.callback }, unsubscribeAccelerometer() { unsubscribes++ } },
-    setInterval: () => 1, clearInterval: () => clears++
+    setInterval: (callback, ms) => { const id = ++timerId; timers.set(id, { callback, ms }); return id },
+    clearInterval: (id) => { assert.ok(timers.delete(id)); clears++ }
   })
   game.$app = { $def: { brightnessReady: Promise.resolve(), getBrightness: () => 50 } }
   game.onShow()
   game.onShow()
+  assert.deepStrictEqual(Array.from(timers.values()).map(t => t.ms), [20, 40])
+  game.setupLevel(MazeCore.buildLevel(7, 13, 7, 'easy'))
+  const wallNodes = game.walls
+  const collisionIndex = game.collisionIndex
+  const activeTimers = Array.from(timers.keys())
+  game.onRestart()
+  assert.strictEqual(game.walls, wallNodes, '重来不重建静态墙节点')
+  assert.strictEqual(game.collisionIndex, collisionIndex)
+  assert.deepStrictEqual(Array.from(timers.keys()), activeTimers, '重来不重建物理与显示定时器')
+  const ballStyle = game.ballStyle
   game.onHide()
   game.onDestroy()
+  game.renderFrame()
+  assert.strictEqual(game.ballStyle, ballStyle, '退出后迟到显示回调不能改动视图')
   game.ax = game.ay = 0
   sensorCallback({ x: 9.8, y: 9.8 })
   assert.equal(game.ax, 0)
   assert.equal(subscribes, 1)
   assert.equal(unsubscribes, 1)
-  assert.equal(clears, 1)
+  assert.equal(clears, 2)
+  assert.equal(timers.size, 0)
   console.log('✓ 返回目标存在/缺失、重复返回、单页条件渲染、卡片复用、Official 右滑、传感器幂等清理通过')
 }
 navigationTest().catch((error) => { console.error(error); process.exitCode = 1 })

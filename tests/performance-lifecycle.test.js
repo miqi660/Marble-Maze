@@ -146,7 +146,7 @@ function gameBudget() {
   let ballWrites = 0
   let positionWrites = 0
   let positionValue
-  Object.defineProperty(page, 'ballPosition', { get: () => positionValue, set: (value) => { positionValue = value; positionWrites++ } })
+  Object.defineProperty(page, 'ballStyle', { get: () => positionValue, set: (value) => { positionValue = value; positionWrites++ } })
   let ballDraws = 0
   const syncBall = page.syncBall
   page.syncBall = function () { ballDraws++; syncBall.call(this) }
@@ -158,10 +158,16 @@ function gameBudget() {
   Object.defineProperty(page, 'ballLeft', { get: () => ballValue, set: (v) => { ballValue = v; ballWrites++ } })
   Object.defineProperty(page, 'ballTop', { get: () => topValue, set: (v) => { topValue = v; topWrites++ } })
   Object.defineProperty(page, 'timeText', { get: () => hudValue, set: (v) => { hudValue = v; hudWrites++ } })
-  for (let i = 1; i <= 50; i++) { now = i * 20; page.tick() }
+  for (let i = 1; i <= 50; i++) {
+    now = i * 20
+    const before = positionWrites
+    page.tick()
+    assert.equal(positionWrites, before, '普通物理 tick 不得写入球 UI')
+    if (i % 2 === 0) page.renderFrame()
+  }
   assert.equal(steps, 50)
-  assert.equal(ballDraws, 50, '小球应每 20ms 刷新一次')
-  assert.ok(ballWrites > 25 && ballWrites <= 50, '整数坐标变化时才写入位置')
+  assert.equal(ballDraws, 25, '小球由独立 40ms 定时器绘制')
+  assert.ok(ballWrites > 0 && ballWrites <= 25, '整数坐标变化时才写入位置')
   assert.equal(hudWrites, 5)
   assert.equal(page.timeText, '01.0')
   assert.equal(topWrites, 1, '未改变的纵坐标不得重复写入')
@@ -171,7 +177,10 @@ function gameBudget() {
   assert.equal(positionWrites, beforePositionWrites, '位置未改变时不重复提交样式')
   assert.ok(Number.isFinite(page.ballLeft) && Number.isFinite(page.ballTop))
   const gameSource = fs.readFileSync('src/pages/game/game.ux', 'utf8')
-  assert.ok(!gameSource.includes('ballTransform') && !/transform\s*:/.test(gameSource), '隔离包不得保留动态 transform 绑定')
+  assert.deepStrictEqual(Object.keys(positionValue), ['transform'])
+  assert.deepStrictEqual(JSON.parse(positionValue.transform), { translateX: page.ballLeft + 'px', translateY: page.ballTop + 'px' })
+  assert.ok(!gameSource.includes('ballPosition'), '动态绑定不再包含 left/top CSS')
+  assert.match(gameSource, /\.ball\s*\{\s*left: 0px;\s*top: 0px;/)
   for (let cols = 7; cols <= 11; cols++) {
     for (let rows = 13; rows <= 20; rows++) {
       const size = Math.round(0.56 * Math.min(184 / cols, 286 / rows))
@@ -185,6 +194,7 @@ function gameBudget() {
   }
   now += 1000
   page.tick()
+  page.renderFrame()
   assert.equal(steps, 53, '长卡顿一次最多补算三步')
   assert.ok(page.accumulator < 20)
   assert.equal(page.timeText, '02.0')
@@ -197,7 +207,7 @@ function gameBudget() {
   assert.strictEqual(page.collisionIndex, index)
   assert.equal(page.timeText, '00.0')
   assert.equal(page.elapsed, 0)
-  // 20ms 定时器受到 1ms 抖动时，已经推进的物理状态不能被第二道限流丢弃。
+  // 两个定时器都存在抖动，显示仍只按自己的回调刷新，没有第二道限流。
   ballDraws = 0
   const drawnAt = []
   page.syncBall = function () { ballDraws++; drawnAt.push(now); syncBall.call(this) }
@@ -205,11 +215,19 @@ function gameBudget() {
   for (let i = 0; i < 50; i++) {
     now += i % 2 === 0 ? 21 : 19
     page.tick()
+    if (i % 2 === 1) page.renderFrame()
   }
   assert.equal(steps - baselineSteps, 50)
-  assert.equal(ballDraws, 50, '21/19ms 抖动下每次物理推进都应提交小球位置')
-  assert.ok(drawnAt.slice(1).every((time, i) => time - drawnAt[i] <= 21), '不得因重复限流产生 40ms 绘制空档')
-  console.log('✓ 1 秒内物理 50 步、球 50 次刷新、HUD 5 次更新；长卡顿最多三步；无 transform 绑定')
+  assert.equal(ballDraws, 25, '物理 21/19ms 抖动不应改变 UI 25Hz 预算')
+  const beforeJitterDraws = ballDraws
+  for (let i = 0; i < 25; i++) { now += i % 2 === 0 ? 41 : 39; page.renderFrame() }
+  assert.equal(ballDraws - beforeJitterDraws, 25, 'UI 41/39ms 抖动不能额外丢帧')
+  assert.ok(drawnAt.slice(1).every((time, i) => time - drawnAt[i] <= 41))
+  const beforeHidden = ballDraws
+  page.running = false
+  page.renderFrame()
+  assert.equal(ballDraws, beforeHidden, '隐藏后迟到显示回调不得刷新')
+  console.log('✓ 物理 50Hz / 球变换 25Hz / HUD 5Hz 分离；抖动不额外丢帧；长卡顿补算有界')
 }
 
 cacheAndSync().then(gameBudget).catch((error) => { console.error(error); process.exitCode = 1 })
