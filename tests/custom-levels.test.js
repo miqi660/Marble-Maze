@@ -164,13 +164,13 @@ async function storeAndProtocolTests() {
   sync.destroy()
 }
 
-function makeLevelsPage(count, routerCalls) {
+function makeLevelsPage(count, routerCalls, globals) {
   const levels = Array.from({ length: count }, (_, index) => Object.assign({}, MazeValidate.stripCrc(OFFICIAL[index % 6]), { name: '自定义 ' + (index + 1) }))
   const store = { list: () => levels, ready: Promise.resolve(true), subscribe: () => () => {} }
-  const definition = load('src/pages/levels/levels.ux', {
+  const definition = load('src/pages/levels/levels.ux', Object.assign({
     router: { push(route) { routerCalls.push(route) } },
     returnToPage(path) { routerCalls.push({ path }) }
-  })
+  }, globals))
   const page = Object.assign({}, definition, JSON.parse(JSON.stringify(definition.private)), {
     $app: { $def: { slotStore: store, progress: 0, progressReady: Promise.resolve(), feedback() {} } }
   })
@@ -184,9 +184,9 @@ function viewModelTests() {
     const { page } = makeLevelsPage(count, [])
     assert.strictEqual(page.customCount, count)
     assert.strictEqual(page.customCards.filter((card) => card.type === 'level').length, count)
-    assert.strictEqual(page.customCards.filter((card) => card.type === 'add').length, count < 12 && count !== 6 ? 1 : 0)
-    assert.strictEqual(page.hasSecondCustomPage, count >= 7)
-    assert.strictEqual(page.pageDots.length, count >= 7 ? 3 : 2)
+    assert.strictEqual(page.customCards.filter((card) => card.type === 'add').length, count < 12 ? 1 : 0)
+    assert.strictEqual(page.hasSecondCustomPage, count >= 6)
+    assert.strictEqual(page.pageDots.length, count >= 6 ? 3 : 2)
     assert.ok(page.customCards.every((card) => card.type === 'level' || card.type === 'add'))
     assert.ok(page.customCards.every((card) => typeof card.index === 'number' && card.page >= 1))
     const levelCards = page.customCards.filter((card) => card.type === 'level')
@@ -198,7 +198,13 @@ function viewModelTests() {
       assert.strictEqual(page.customCards[1].index, 1)
     }
     if (count === 5) assert.strictEqual(page.customCards[5].type, 'add')
-    if (count === 6) assert.strictEqual(page.customCards.some((card) => card.page === 2), false)
+    if (count === 6) {
+      const secondPage = page.customCards.filter((card) => card.page === 2)
+      assert.strictEqual(secondPage.length, 1)
+      assert.strictEqual(secondPage[0].type, 'add')
+      assert.strictEqual(secondPage[0].left, 15)
+      assert.strictEqual(secondPage[0].top, 148)
+    }
     if (count === 7) {
       assert.strictEqual(page.customCards.filter((card) => card.page === 1).length, 6)
       assert.deepStrictEqual(JSON.parse(JSON.stringify(page.customCards.filter((card) => card.page === 2).map((card) => card.type))), ['level', 'add'])
@@ -222,7 +228,11 @@ function viewModelTests() {
   assert.strictEqual(page.pageDots[2].active, true)
   levels.pop()
   page.refreshCustomLevels()
-  assert.strictEqual(page.pageIndex, 1, '7→6 时第二页立即消失并回到第一页')
+  assert.strictEqual(page.pageIndex, 2, '7→6 时保留第二页加号占位')
+  assert.strictEqual(page.pageDots.length, 3)
+  levels.pop()
+  page.refreshCustomLevels()
+  assert.strictEqual(page.pageIndex, 1, '6→5 时第二页消失并回到第一页')
   assert.strictEqual(page.pageDots.length, 2)
 
   const { page: fullPage } = makeLevelsPage(12, calls)
@@ -232,6 +242,50 @@ function viewModelTests() {
   }
   assert.deepStrictEqual(calls.map((route) => route.params.index), ['0', '5', '6', '11'])
   assert.ok(calls.every((route) => route.params.pack === 'custom'))
+}
+
+function slideTests() {
+  const timers = new Map()
+  let timerId = 0
+  const calls = []
+  const { page, levels } = makeLevelsPage(6, calls, {
+    setTimeout(callback, delay) {
+      assert.strictEqual(delay, 220)
+      timers.set(++timerId, callback)
+      return timerId
+    },
+    clearTimeout(id) { timers.delete(id) }
+  })
+  page.switchPage(1)
+  assert.strictEqual(page.slideClass, 'slide-from-right')
+  assert.strictEqual(page.pageDots[1].active, true)
+  page.switchPage(2)
+  page.playCustom(0)
+  page.playOfficial(0)
+  page.onBackPress()
+  assert.strictEqual(page.pageIndex, 1, '动画期间不重复翻页')
+  assert.strictEqual(calls.length, 0, '动画期间不误触关卡')
+  timers.get(timerId)()
+  assert.strictEqual(page.slideClass, '')
+  assert.strictEqual(timers.size, 0)
+  page.switchPage(2)
+  assert.strictEqual(page.pageDots[2].active, true)
+  timers.get(timerId)()
+  page.onBackPress()
+  assert.strictEqual(page.slideClass, 'slide-from-left')
+  assert.strictEqual(page.pageIndex, 1)
+  page.onHide()
+  assert.strictEqual(timers.size, 0, '页面隐藏清理动画计时器')
+  assert.strictEqual(page.slideClass, '')
+  page.switchPage(2)
+  levels.pop()
+  page.refreshCustomLevels()
+  assert.strictEqual(page.pageIndex, 1)
+  assert.strictEqual(page.pageDots[1].active, true)
+  assert.strictEqual(page.slideClass, '')
+  assert.strictEqual(timers.size, 0, '同步删除关卡时终止过期动画')
+  page.switchPage(2)
+  assert.strictEqual(timers.size, 0, '不能滑入不存在的页面')
 }
 
 async function gameAndCompleteTests() {
@@ -276,6 +330,7 @@ async function run() {
   await migrationTests()
   await storeAndProtocolTests()
   viewModelTests()
+  slideTests()
   await gameAndCompleteTests()
   console.log('✓ 连续存储、迁移、全局串行写入、列表协议、分页边界、删除压缩和自定义游戏路由通过')
 }

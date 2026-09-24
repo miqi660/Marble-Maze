@@ -68,7 +68,7 @@ async function navigationTest() {
   const store = { list: () => [], ready: Promise.resolve(true), subscribe: () => () => {} }
   const levels = readUx('src/pages/levels/levels.ux', {
     router, returnToPage, OFFICIAL: new Array(6).fill({ difficulty: 'easy' }), DIFFICULTY_LABEL: {},
-
+    setTimeout, clearTimeout
   })
   const page = Object.assign({}, levels, JSON.parse(JSON.stringify(levels.private)), {
     $valid: true, $app: { $def: { progress: 2, progressReady: Promise.resolve(), slotStore: store } }
@@ -86,15 +86,18 @@ async function navigationTest() {
   page.onTouchStart({ touches: [{ clientX: 150, clientY: 200 }] })
   page.onTouchEnd({ changedTouches: [{ clientX: 40, clientY: 200 }] })
   assert.equal(page.pageIndex, 1, 'Official 左滑进入自定义第一页')
+  page.stopSlide()
   page.onTouchStart({ touches: [{ clientX: 40, clientY: 200 }] })
   page.onTouchEnd({ changedTouches: [{ clientX: 150, clientY: 200 }] })
   assert.equal(page.pageIndex, 0, '自定义第一页右滑返回 Official')
+  page.stopSlide()
   const before = calls.length
   page.pageIndex = 1
   page.onTouchStart({ touches: [{ clientX: 20, clientY: 100 }] })
   page.onTouchEnd({ changedTouches: [{ clientX: 100, clientY: 105 }] })
   assert.equal(calls.length, before, 'Custom 滑回 Official 不得退出')
   assert.equal(page.pageIndex, 0)
+  page.stopSlide()
   pages = [{ name: 'pages/home' }, { name: 'pages/levels' }]
   page.onTouchStart({ touches: [{ clientX: 20, clientY: 100 }] })
   page.onTouchEnd({ changedTouches: [{ clientX: 90, clientY: 105 }] })
