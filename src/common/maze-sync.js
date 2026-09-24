@@ -101,7 +101,10 @@ export default class MazeSync extends interconnModule {
         rows: level.rows
       })) : []
       const response = { type: 'list', levels }
-      if (!ready) response.ok = false
+      if (!ready) {
+        response.ok = false
+        response.message = this.store.lastError || 'storage initialization failed'
+      }
       this.reply(response)
       return response
     })
