@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>自定义迷宫生成器</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f1f1ed}
+*{box-sizing:border-box}body{margin:0;padding:24px}.app{max-width:1220px;margin:0 auto}.topbar{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:18px}.topbar h1{font-size:28px;line-height:1.05;margin:0}.topbar p{margin:7px 0 0;font-size:13px;color:#555;max-width:720px}.tag{border:2px solid #111;background:#ffe45e;padding:8px 12px;font-weight:800;box-shadow:4px 4px 0 #111;white-space:nowrap}.grid{display:grid;grid-template-columns:310px 250px minmax(0,1fr);gap:18px;align-items:start}.panel{background:#fff;border:2px solid #111;box-shadow:5px 5px 0 #111;padding:16px}.panel h2{font-size:16px;margin:0 0 12px}.field{margin:10px 0}.field label{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:750;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;border:2px solid #111;background:#fff;padding:9px 10px;font:inherit}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}button{border:2px solid #111;background:#fff;padding:9px 11px;font:inherit;font-weight:800;cursor:pointer;box-shadow:3px 3px 0 #111}button.primary{background:#ffe45e}button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #111}button:disabled{opacity:.42;cursor:not-allowed;transform:none}.note{font-size:11px;line-height:1.45;color:#555;margin:10px 0 0}.watch-wrap{display:flex;justify-content:center}.watch{width:192px;height:490px;border:2px solid #111;border-radius:96px;background:#fff;position:relative;display:flex;align-items:center;justify-content:center}.watch:before{content:"EDITOR 180×280";position:absolute;top:49px;font-size:9px;font-weight:850;letter-spacing:.08em}.watch:after{content:"192 × 490";position:absolute;bottom:42px;font-size:9px;color:#666}.maze-canvas{width:180px;height:280px;border:2.3px solid #111;display:block;background:#fff}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}.metric{border:2px solid #111;padding:9px;min-height:70px}.metric .k{font-size:10px;color:#666;font-weight:800;text-transform:uppercase}.metric .v{font-size:17px;font-weight:900;margin-top:4px;word-break:break-all}.status{border:2px solid #111;padding:10px 12px;font-weight:850;margin-bottom:12px}.status.green{background:#ccffd0}.status.yellow{background:#fff2a8}.status.reject{background:#ffd0d0}.checks{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px;font-size:12px}.check{border:1.5px solid #111;padding:6px 8px;background:#fafafa}.check.pass:before{content:"✓ ";font-weight:900}.check.fail:before{content:"× ";font-weight:900}.tabs{display:flex;gap:6px;margin-bottom:7px}.tab{box-shadow:none;padding:6px 8px;font-size:11px}.tab.active{background:#111;color:#fff}.code{width:100%;height:250px;resize:vertical;border:2px solid #111;padding:10px;font:11px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;background:#fcfcfc;white-space:pre}.footer-note{font-size:11px;color:#555;margin-top:12px;line-height:1.5}.seed-actions{display:flex;gap:6px}.seed-actions input{flex:1}.mini{padding:8px 9px;box-shadow:none}.path-toggle{display:flex;gap:7px;align-items:center;margin-top:10px;font-size:12px}.path-toggle input{width:auto}.error-box{display:none;border:2px solid #111;background:#ffd0d0;padding:9px;margin-top:10px;font:11px/1.4 ui-monospace,monospace;word-break:break-word}.error-box.show{display:block}@media(max-width:980px){.grid{grid-template-columns:310px 250px}.output{grid-column:1/-1}}@media(max-width:650px){body{padding:12px}.topbar{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.watch-wrap{justify-content:flex-start}.output{grid-column:auto}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div><h1>自定义迷宫生成器</h1><p>选择难度或尺寸，输入种子，即可生成、预览并导出关卡。</p></div>
+    <div class="tag">离线生成</div>
+  </div>
+
+  <section class="panel" style="margin-bottom:18px">
+    <h2>同步到手环</h2>
+    <p id="wearStatus" role="status" aria-live="polite">尚未连接手环</p>
+    <div class="field"><label for="wearDevice">已连接设备</label><select id="wearDevice"></select></div>
+    <div class="buttons">
+      <button id="scanWear" type="button">查询设备</button>
+      <button id="connectWear" type="button" disabled>连接手环</button>
+      <button id="disconnectWear" type="button" disabled>断开</button>
+      <button id="refreshSlots" type="button" disabled>刷新槽位</button>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div><strong>自定义 A</strong><p id="slota" style="overflow-wrap:anywhere">尚未读取</p>
+        <div class="buttons"><button id="puta" type="button" disabled>上传当前关卡</button><button id="cleara" type="button" disabled>清空 A</button></div></div>
+      <div><strong>自定义 B</strong><p id="slotb" style="overflow-wrap:anywhere">尚未读取</p>
+        <div class="buttons"><button id="putb" type="button" disabled>上传当前关卡</button><button id="clearb" type="button" disabled>清空 B</button></div></div>
+    </div>
+    <p class="note">先在小米运动健康中连接手环，再查询设备。上传前请在下方生成或导入关卡。</p>
+  </section>
+
+  <div class="grid">
+    <section class="panel controls">
+      <h2>生成参数</h2>
+      <div class="field"><label><span>预设</span><span>仅影响生成端</span></label><select id="preset"><option value="easy">简单 · 7×13</option><option value="normal" selected>正常 · 8×15</option><option value="hard">困难 · 9×17</option><option value="expert">专家 · 10×19</option><option value="custom">自定义尺寸</option></select></div>
+      <div class="row">
+        <div class="field"><label>cols <span>7..11</span></label><input id="cols" type="number" min="7" max="11" step="1" value="8"></div>
+        <div class="field"><label>rows <span>13..20</span></label><input id="rows" type="number" min="13" max="20" step="1" value="15"></div>
+      </div>
+      <div class="field"><label>seed <span>uint32</span></label><div class="seed-actions"><input id="seed" type="number" min="0" max="4294967295" step="1" value="1"><button id="randomSeed" class="mini" type="button">随机</button></div></div>
+      <div class="buttons"><button id="generate" class="primary" type="button">生成 + 完整校验</button><button id="nextSeed" type="button">Seed +1</button></div>
+      <label class="path-toggle"><input id="showPath" type="checkbox" checked> 预览最短路径（仅编辑器显示，不进入 MazeDefinition）</label>
+      <div id="errorBox" class="error-box"></div>
+      <p class="note">固定 Generator：v1 / DFS / seeded PRNG / Perfect Maze。Start 在顶行，Goal 在底行，并从所有顶→底组合中选最短路径最长的一组。</p>
+      <hr style="border:0;border-top:2px solid #111;margin:16px 0">
+      <h2>导入校验</h2>
+      <div class="field"><label>粘贴 MazeDefinition v1</label><textarea id="importText" style="height:108px;font:10px/1.35 ui-monospace,monospace" placeholder='{"v":1,"id":"m-b-..."}'></textarea></div>
+      <div class="buttons"><button id="validateImport" type="button">完整校验并预览</button></div>
+      <p class="note">导入成功后会规范化字段顺序再显示 exact payload；不会写入任何额外运行字段。</p>
+    </section>
+
+    <section class="panel preview">
+      <h2>迷宫预览</h2>
+      <div class="watch-wrap"><div class="watch"><canvas id="mazeCanvas" class="maze-canvas" width="360" height="560"></canvas></div></div>
+      <p class="note">Editor Canvas = 180×280，整个白色编辑区都视为迷宫可用范围；迷宫在该范围内尽量铺满。墙线与外边框 = 2.3px / #111。此处不是 Band 9 Runtime 的 176×328 Maze Slot，也不是 Physics wallThickness。</p>
+    </section>
+
+    <section class="panel output">
+      <h2>校验与导出</h2>
+      <div id="status" class="status green">等待生成</div>
+      <div class="metrics">
+        <div class="metric"><div class="k">Maze ID</div><div id="mId" class="v">—</div></div>
+        <div class="metric"><div class="k">Cells</div><div id="mCells" class="v">—</div></div>
+        <div class="metric"><div class="k">Wall Runs</div><div id="mRuns" class="v">—</div></div>
+        <div class="metric"><div class="k">Shortest Path</div><div id="mPath" class="v">—</div></div>
+        <div class="metric"><div class="k">Dead Ends / Branches</div><div id="mDead" class="v">—</div></div>
+        <div class="metric"><div class="k">Payload / CRC32</div><div id="mPayload" class="v">—</div></div>
+      </div>
+      <div id="checks" class="checks"></div>
+      <div class="tabs"><button class="tab active" data-tab="pretty">MazeDefinition</button><button class="tab" data-tab="exact">Exact Payload</button><button class="tab" data-tab="report">Generator Report</button></div>
+      <textarea id="code" class="code" readonly></textarea>
+      <div class="buttons"><button id="copy" type="button" disabled>复制当前</button><button id="downloadMaze" class="primary" type="button" disabled>导出关卡 JSON</button><button id="downloadReport" type="button" disabled>导出报告</button></div>
+      <p class="footer-note">Maze JSON 下载内容为无尾换行的 exact `JSON.stringify(MazeDefinition v1)`，因此当前显示的 payloadBytes / CRC-32 与下载文件字节一致。Report 是生成端旁路信息，不进入手环 Runtime。</p>
+    </section>
+  </div>
+</div>
+<script src="./tools/maze/generator-core.js"></script>
+<script>
+(function(){
+  'use strict';
+  const C = window.MazeGeneratorCore;
+  const $ = (id) => document.getElementById(id);
+  let current = null;
+  let activeTab = 'pretty';
+  window.getCurrentMaze = () => current ? current.maze : null;
+
+  const checkLabels = [
+    'GenerationSpec / 尺寸 / 比例', 'Cell Hex / 外围封闭', 'N/E/S/W 墙对称', '全 Cell 连通',
+    'Perfect Maze · N-1 通道', 'Start 顶行 / Goal 底行', 'Start → Goal 可达', 'render ↔ cells 一致',
+    '最大连续墙段 / Run 上限', 'Performance Gate 非 REJECT', 'Maze ID SHA-256', 'Sync payload ≤ 16 KiB'
+  ];
+
+  function errorMessage(error){ return error && (error.code || error.message) ? (error.code || error.message) : String(error); }
+
+  function randomUint32(){
+    const a = new Uint32Array(1);
+    crypto.getRandomValues(a);
+    return a[0];
+  }
+
+  function fitCanvas(maze){
+    const canvas = $('mazeCanvas');
+    const g = canvas.getContext('2d');
+    const cssW = 180, cssH = 280, scalePx = canvas.width / cssW;
+    g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,canvas.width,canvas.height); g.scale(scalePx,scalePx);
+    g.fillStyle = '#fff'; g.fillRect(0,0,cssW,cssH);
+
+    const pad = 4;
+    const availableW = cssW - pad * 2, availableH = cssH - pad * 2;
+    const cellW = availableW / maze.cols, cellH = availableH / maze.rows;
+    const ox = pad, oy = pad;
+    const unit = Math.min(cellW, cellH);
+
+    if ($('showPath').checked && current && current.validation && current.validation.path) {
+      const path = current.validation.path;
+      g.strokeStyle = 'rgba(255, 201, 28, .62)';
+      g.lineWidth = Math.max(2.2, unit * .22);
+      g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath();
+      path.forEach((cellIndex, i) => {
+        const col = cellIndex % maze.cols, row = Math.floor(cellIndex / maze.cols);
+        const x = ox + (col + .5) * cellW, y = oy + (row + .5) * cellH;
+        if (i === 0) g.moveTo(x,y); else g.lineTo(x,y);
+      });
+      g.stroke();
+    }
+
+    g.strokeStyle = '#111'; g.lineWidth = 2.3; g.lineCap = 'butt'; g.lineJoin = 'miter'; g.beginPath();
+    for (let i=0;i<maze.render.h.length;i+=3) {
+      const x=maze.render.h[i], y=maze.render.h[i+1], len=maze.render.h[i+2];
+      g.moveTo(ox+x*cellW, oy+y*cellH); g.lineTo(ox+(x+len)*cellW, oy+y*cellH);
+    }
+    for (let i=0;i<maze.render.v.length;i+=3) {
+      const x=maze.render.v[i], y=maze.render.v[i+1], len=maze.render.v[i+2];
+      g.moveTo(ox+x*cellW, oy+y*cellH); g.lineTo(ox+x*cellW, oy+(y+len)*cellH);
+    }
+    g.stroke();
+
+    function marker(index, label, fill){
+      const col=index%maze.cols,row=Math.floor(index/maze.cols),x=ox+(col+.5)*cellW,y=oy+(row+.5)*cellH;
+      const r=Math.min(6,unit*.30); g.fillStyle=fill; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+      g.strokeStyle='#111'; g.lineWidth=1.2; g.stroke(); g.fillStyle='#111'; g.font='800 '+Math.max(7,Math.min(9,r*1.45))+'px system-ui'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(label,x,y+.2);
+    }
+    marker(maze.start,'S','#b9ffbf'); marker(maze.goal,'G','#ffb7b7');
+  }
+
+  function renderChecks(ok){
+    $('checks').innerHTML = checkLabels.map((label) => '<div class="check '+(ok?'pass':'fail')+'">'+label+'</div>').join('');
+  }
+
+  function tabText(){
+    if (!current) return '';
+    if (activeTab === 'exact') return current.payload.text;
+    if (activeTab === 'report') return JSON.stringify(current.report, null, 2);
+    return JSON.stringify(current.maze, null, 2);
+  }
+
+  function refreshCode(){ $('code').value = tabText(); }
+
+  function present(result){
+    current = result;
+    fitCanvas(result.maze);
+    const v = result.validation, r = result.report, p = result.payload;
+    const cls = v.performance === 'GREEN' ? 'green' : v.performance === 'YELLOW' ? 'yellow' : 'reject';
+    $('status').className = 'status '+cls;
+    $('status').textContent = 'PASS · '+v.performance+' · MazeDefinition v1 · band';
+    $('mId').textContent = result.maze.id;
+    $('mCells').textContent = v.cellCount+' / 220';
+    $('mRuns').textContent = v.renderRunCount+' / 256';
+    $('mPath').textContent = v.shortestPath+' steps · '+v.turns+' turns';
+    $('mDead').textContent = v.deadEnds+' / '+v.branches;
+    $('mPayload').textContent = p.payloadBytes+' B · '+p.checksum;
+    renderChecks(true); refreshCode();
+    $('copy').disabled = false; $('downloadMaze').disabled = false; $('downloadReport').disabled = false;
+    $('errorBox').className = 'error-box'; $('errorBox').textContent = '';
+    if (window.MazeSyncUI) window.MazeSyncUI.refresh();
+  }
+
+  function reject(error){
+    current = null;
+    $('status').className = 'status reject'; $('status').textContent = 'REJECT · '+errorMessage(error);
+    ['mId','mCells','mRuns','mPath','mDead','mPayload'].forEach((id)=>$(id).textContent='—');
+    renderChecks(false); $('code').value='';
+    $('copy').disabled = true; $('downloadMaze').disabled = true; $('downloadReport').disabled = true;
+    $('errorBox').className = 'error-box show'; $('errorBox').textContent = errorMessage(error);
+    const canvas=$('mazeCanvas'),g=canvas.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,canvas.width,canvas.height);
+    if (window.MazeSyncUI) window.MazeSyncUI.refresh();
+  }
+
+  function difficultyFromUi(){ const p=$('preset').value; return p === 'custom' ? 'custom' : p; }
+
+  function generate(){
+    try {
+      const cols = Number($('cols').value), rows = Number($('rows').value), seed = Number($('seed').value);
+      present(C.build(cols, rows, seed, difficultyFromUi()));
+    } catch (error) { reject(error); }
+  }
+
+  function setPreset(name){
+    if (name === 'custom') return;
+    const pair = C.PRESETS[name]; $('cols').value=pair[0]; $('rows').value=pair[1];
+  }
+
+  function download(name, text, type){ if(window.AndroidGenerator){ window.AndroidGenerator.exportJson(name, text); return; }
+    const blob = new Blob([text], {type:type||'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),0);
+  }
+
+  $('preset').addEventListener('change', function(){ setPreset(this.value); generate(); });
+  $('cols').addEventListener('input', function(){ $('preset').value='custom'; });
+  $('rows').addEventListener('input', function(){ $('preset').value='custom'; });
+  $('generate').addEventListener('click', generate);
+  $('randomSeed').addEventListener('click', function(){ $('seed').value=randomUint32(); generate(); });
+  $('nextSeed').addEventListener('click', function(){ const n=Number($('seed').value); $('seed').value = Number.isInteger(n) ? ((n+1) >>> 0) : 0; generate(); });
+  $('showPath').addEventListener('change', function(){ if(current) fitCanvas(current.maze); });
+
+  $('validateImport').addEventListener('click', function(){
+    try {
+      const parsed = JSON.parse($('importText').value);
+      const validation = C.validateFull(parsed);
+      const maze = C.normalizeMazeDefinition(parsed);
+      const payload = C.payloadInfo(maze);
+      present({
+        maze,
+        validation,
+        payload,
+        report:{
+          source:'import-validation', profile:maze.profile, cols:maze.cols, rows:maze.rows,
+          cellCount:validation.cellCount, renderRunCount:validation.renderRunCount, performance:validation.performance,
+          shortestPath:validation.shortestPath, turns:validation.turns, deadEnds:validation.deadEnds, branches:validation.branches,
+          payloadBytes:payload.payloadBytes, syncChecksum:payload.checksum, syncPayloadWithin16KiB:payload.withinSyncPayloadLimit
+        }
+      });
+    } catch(error){ reject(error); }
+  });
+
+  document.querySelectorAll('.tab').forEach(function(button){
+    button.addEventListener('click', function(){ document.querySelectorAll('.tab').forEach((b)=>b.classList.remove('active')); button.classList.add('active'); activeTab=button.dataset.tab; refreshCode(); });
+  });
+  $('copy').addEventListener('click', async function(){ try{ if(window.AndroidGenerator){ window.AndroidGenerator.copyText(tabText()); return; } await navigator.clipboard.writeText(tabText()); }catch(_){ $('code').select(); document.execCommand('copy'); } });
+  $('downloadMaze').addEventListener('click', function(){ if(current) download(current.maze.id+'.json', current.payload.text); });
+  $('downloadReport').addEventListener('click', function(){ if(current) download(current.maze.id+'.generator-report.json', JSON.stringify(current.report,null,2)+'\n'); });
+
+  renderChecks(false); generate();
+})();
+</script>
+<script src="./sync-client.js"></script>
+<script src="./sync-ui.js"></script>
+</body>
+</html>
