@@ -4,7 +4,7 @@
   const bridge = window.AndroidGenerator;
   let scanning = false;
   let preparing = false;
-  let state = { connected: false, busy: false, slots: null, message: '尚未连接手环' };
+  let state = { connected: false, busy: false, levels: null, message: '尚未连接手环' };
   const client = new window.MazeSync.Client({
     send: (token, id, text) => bridge.sendWear(token, id, text),
     disconnect: (token, reason) => bridge.disconnectWear(token, reason),
@@ -19,13 +19,48 @@
     $('connectWear').disabled = !supported || busy || state.connected || !$('wearDevice').value;
     $('wearDevice').disabled = busy || state.connected;
     $('disconnectWear').disabled = !state.connected || state.busy;
-    $('refreshSlots').disabled = !state.connected || busy;
-    for (const slot of ['a', 'b']) {
-      const item = state.slots && state.slots.find(value => value.slot === slot);
-      $('slot' + slot).textContent = state.slots === null ? '尚未读取' :
-        item ? (item.name || item.id || '未命名关卡') + ' · ' + item.cols + '×' + item.rows : '空槽位';
-      $('put' + slot).disabled = !state.connected || busy || state.slots === null || !window.getCurrentMaze();
-      $('clear' + slot).disabled = !state.connected || busy || !item;
+    $('refreshLevels').disabled = !state.connected || busy;
+    const available = state.connected && !busy && state.levels !== null;
+    let validMaze = false;
+    try { window.MazeSync.levelForSync(window.getCurrentMaze()); validMaze = true; } catch (_) {}
+    $('addLevel').disabled = !available || !validMaze || state.levels.length >= 12;
+    $('customLevelCount').textContent = '自定义关卡 ' + (state.levels === null ? '—' : state.levels.length) + ' / 12';
+    const list = $('customLevelList');
+    list.replaceChildren();
+    if (state.levels === null || !state.levels.length) {
+      const empty = document.createElement('p');
+      empty.textContent = state.levels === null ? '尚未读取' : '暂无自定义关卡';
+      list.appendChild(empty);
+    }
+    for (const item of state.levels || []) {
+      const number = String(item.index + 1).padStart(2, '0');
+      const card = document.createElement('div');
+      card.className = 'custom-level';
+      const title = document.createElement('strong');
+      title.textContent = number;
+      const name = document.createElement('p');
+      name.textContent = item.name || item.id || '未命名关卡';
+      const size = document.createElement('p');
+      size.textContent = item.cols + ' × ' + item.rows;
+      card.appendChild(title);
+      card.appendChild(name);
+      card.appendChild(size);
+      const buttons = document.createElement('div');
+      buttons.className = 'buttons';
+      for (const kind of ['replace', 'remove']) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = kind === 'replace' ? '替换' : '删除';
+        button.disabled = !available || (kind === 'replace' && !validMaze);
+        button.addEventListener('click', () => perform(() => {
+          const prompt = kind === 'replace' ? '确定使用当前生成的关卡替换「自定义 ' + number + '」？' :
+            '删除自定义 ' + number + '？\n删除后，后面的自定义关卡编号会自动前移。';
+          if (window.confirm(prompt)) client.request(kind, item.index, window.getCurrentMaze());
+        }));
+        buttons.appendChild(button);
+      }
+      card.appendChild(buttons);
+      list.appendChild(card);
     }
   }
 
@@ -47,23 +82,15 @@
   $('wearDevice').addEventListener('change', render);
   $('connectWear').addEventListener('click', () => perform(() => {
     preparing = true;
-    state.slots = null;
+    state.levels = null;
     state.message = '正在准备连接…';
     render();
     bridge.connectWear($('wearDevice').value);
   }));
   $('disconnectWear').addEventListener('click', () => client.stop('已断开连接'));
-  $('refreshSlots').addEventListener('click', () => perform(() => client.request('list')));
-  for (const slot of ['a', 'b']) {
-    $('put' + slot).addEventListener('click', () => perform(() => {
-      const existing = state.slots && state.slots.find(value => value.slot === slot);
-      if (existing && !window.confirm('覆盖自定义 ' + slot.toUpperCase() + ' 中的现有关卡？')) return;
-      client.request('put', slot, window.getCurrentMaze());
-    }));
-    $('clear' + slot).addEventListener('click', () => perform(() => {
-      if (window.confirm('清空手环自定义 ' + slot.toUpperCase() + ' 槽位？')) client.request('clear', slot);
-    }));
-  }
+  $('refreshLevels').addEventListener('click', () => perform(() => client.request('list')));
+  $('addLevel').addEventListener('click', () => perform(() =>
+    client.request('add', undefined, window.getCurrentMaze())));
 
   window.MazeSyncUI = {
     refresh: render,

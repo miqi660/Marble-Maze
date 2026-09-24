@@ -24,7 +24,7 @@ function page() {
     elements[id].value = value;
   }
   const sent = [], calls = [], timers = new Set();
-  let confirm = false;
+  let confirm = false; const prompts = [];
   const sandbox = {
     document: { getElementById: id => elements[id], querySelectorAll: () => [], createElement: element },
     AndroidGenerator: {
@@ -32,7 +32,7 @@ function page() {
       sendWear: (token, id, text) => sent.push({ token, id, message: JSON.parse(text) }),
       disconnectWear: (token, reason) => calls.push({ token, reason })
     }, TextEncoder, Uint8Array,
-    confirm: () => confirm,
+    confirm: prompt => { prompts.push(prompt); return confirm; },
     setTimeout: callback => { timers.add(callback); return callback; },
     clearTimeout: callback => timers.delete(callback)
   };
@@ -48,7 +48,7 @@ function page() {
   };
   const event = value => sandbox.MazeSyncUI.onNativeEvent(value);
   const message = value => event({ type: 'message', token: 2, text: JSON.stringify(value) });
-  function connected(slots = []) {
+  function connected(levels = []) {
     click('scanWear');
     event({ type: 'devices', nodes: [{ id: 'band-1', name: '测试手环' }], message: '请选择设备' });
     click('connectWear');
@@ -56,65 +56,88 @@ function page() {
     event({ type: 'status', token: 2, message: '正在检查互联授权' });
     event({ type: 'ready', token: 2, name: '测试手环' });
     message({ tag: '__hs__', count: 1 });
-    message({ tag: 'maze', type: 'list', slots });
+    message({ tag: 'maze', type: 'list', levels });
   }
-  return { elements, sent, calls, click, event, message, connected,
+  return { elements, sent, calls, click, event, message, connected, prompts,
     accept: () => { confirm = true; }, maze: () => sandbox.getCurrentMaze() };
 }
 
-test('页面从查询设备到握手完成后解锁上传；存储确认及列表匹配才显示成功', () => {
-  const p = page();
-  assert.equal(p.elements.puta.disabled, true);
-  p.connected();
-  assert.equal(p.elements.puta.disabled, false);
-  assert.equal(p.elements.cleara.disabled, true);
-  p.click('puta');
-  assert.equal(p.sent.at(-1).message.stat, 'put');
-  assert.equal(p.elements.putb.disabled, true);
-  assert.equal(p.elements.scanWear.disabled, true);
-  p.message({ tag: 'maze', type: 'ack', slot: 'a', ok: true });
+const summaries = (count, maze) => Array.from({ length: count }, (_, index) =>
+  ({ index, id: maze.id + index, name: '<b>关卡名</b>', cols: maze.cols, rows: maze.rows }));
+const cards = p => p.elements.customLevelList.children;
+function action(p, index, kind) {
+  const button = cards(p)[index].children[3].children[kind === 'replace' ? 0 : 1];
+  assert.equal(button.disabled, false);
+  button.handlers.click();
+}
+for (const count of [0, 1, 6, 7, 12]) test('动态渲染 ' + count + ' / 12 与操作可用性', () => {
+  const p = page(); p.connected(summaries(count, p.maze()));
+  assert.equal(p.elements.customLevelCount.textContent, '自定义关卡 ' + count + ' / 12');
+  assert.equal(p.elements.addLevel.disabled, count === 12);
+  if (!count) assert.equal(cards(p)[0].textContent, '暂无自定义关卡');
+  else {
+    assert.equal(cards(p).length, count);
+    for (let index = 0; index < count; index++) {
+      assert.equal(cards(p)[index].children[0].textContent, String(index + 1).padStart(2, '0'));
+      assert.equal(cards(p)[index].children[1].textContent, '<b>关卡名</b>');
+      for (const button of cards(p)[index].children[3].children) assert.equal(button.disabled, false);
+    }
+  }
+});
+
+test('添加成功必须等待 ACK 后重新 list；非法生成关卡不能添加', () => {
+  const p = page(); assert.equal(p.elements.addLevel.disabled, true); p.connected();
+  p.click('addLevel'); const sent = p.sent.at(-1).message;
+  assert.equal(sent.stat, 'add'); assert.equal(Object.hasOwn(sent, 'index'), false);
+  assert.equal(p.elements.addLevel.disabled, true);
+  p.message({ tag: 'maze', type: 'ack', stat: 'add', index: 0, ok: true });
   assert.equal(p.sent.at(-1).message.stat, 'list');
-  assert.doesNotMatch(p.elements.wearStatus.textContent, /同步成功/);
-  const maze = p.maze();
-  p.message({ tag: 'maze', type: 'list', slots: [{ slot: 'a', name: '', id: maze.id, cols: maze.cols, rows: maze.rows }] });
+  assert.doesNotMatch(p.elements.wearStatus.textContent, /成功/);
+  const level = sent.level;
+  p.message({ tag: 'maze', type: 'list', levels: [{ index: 0, id: level.id, name: level.name || '', cols: level.cols, rows: level.rows }] });
   assert.match(p.elements.wearStatus.textContent, /同步成功/);
-  assert.equal(p.elements.cleara.disabled, false);
+  p.elements.seed.value = '-1'; p.click('generate');
+  assert.equal(p.elements.addLevel.disabled, true);
+  assert.equal(cards(p)[0].children[3].children[0].disabled, true);
+  assert.equal(cards(p)[0].children[3].children[1].disabled, false);
 });
 
-test('覆盖或清空需要确认；取消不会发送，失效关卡禁止上传', () => {
-  const p = page();
-  const maze = p.maze();
-  p.connected([{ slot: 'a', name: '<b>关卡名</b>', id: maze.id, cols: maze.cols, rows: maze.rows }]);
-  assert.match(p.elements.slota.textContent, /<b>关卡名<\/b>/);
-  const count = p.sent.length;
-  p.click('puta');
-  p.click('cleara');
-  assert.equal(p.sent.length, count);
-  p.accept();
-  p.click('cleara');
-  assert.equal(p.sent.at(-1).message.stat, 'clear');
-  p.message({ tag: 'maze', type: 'ack', slot: 'a', ok: true });
-  p.message({ tag: 'maze', type: 'list', slots: [] });
-  assert.match(p.elements.wearStatus.textContent, /清空成功/);
-  p.elements.seed.value = '-1';
-  p.click('generate');
-  assert.equal(p.elements.puta.disabled, true);
-  assert.equal(p.elements.putb.disabled, true);
+for (const kind of ['replace', 'remove']) test(kind + ' 必须确认；取消不发送，确认后按 index 发送', () => {
+  const p = page(); const before = summaries(12, p.maze()); p.connected(before);
+  const count = p.sent.length; action(p, 2, kind);
+  assert.equal(p.sent.length, count); assert.match(p.prompts.at(-1), /自定义 03/);
+  if (kind === 'remove') assert.match(p.prompts.at(-1), /自动前移/);
+  p.accept(); action(p, 2, kind);
+  const sent = p.sent.at(-1).message;
+  assert.equal(sent.stat, kind); assert.equal(sent.index, 2);
+  assert.doesNotMatch(p.elements.wearStatus.textContent, /成功/);
+  p.message({ tag: 'maze', type: 'ack', stat: kind, index: 2, ok: true });
+  assert.equal(p.sent.at(-1).message.stat, 'list');
+  assert.doesNotMatch(p.elements.wearStatus.textContent, /成功/);
+  let after = before.slice();
+  if (kind === 'remove') after = after.filter(item => item.index !== 2).map((item, index) => ({ ...item, index }));
+  else after[2] = { index: 2, id: sent.level.id, name: sent.level.name || '', cols: sent.level.cols, rows: sent.level.rows };
+  p.message({ tag: 'maze', type: 'list', levels: after });
+  assert.match(p.elements.wearStatus.textContent, kind === 'remove' ? /删除成功/ : /替换成功/);
+  assert.equal(p.elements.addLevel.disabled, kind !== 'remove');
 });
 
-test('授权失败或 SDK 不可用能恢复查询入口，断线后不能沿用旧槽位', () => {
-  const p = page();
-  p.click('scanWear');
-  p.event({ type: 'unavailable', message: '穿戴 SDK 无法加载' });
+test('SDK 失败恢复入口；断开清除旧列表，重连必须重新查询', () => {
+  const p = page(); p.click('scanWear'); p.event({ type: 'unavailable', message: '穿戴 SDK 无法加载' });
   assert.equal(p.elements.scanWear.disabled, false);
-  p.connected();
+  p.connected(summaries(7, p.maze()));
   p.event({ type: 'disconnected', token: 2, message: '服务已断开' });
-  assert.equal(p.elements.puta.disabled, true);
-  assert.equal(p.elements.slota.textContent, '尚未读取');
-  assert.equal(p.elements.connectWear.disabled, false);
+  assert.equal(p.elements.addLevel.disabled, true);
+  assert.equal(cards(p)[0].textContent, '尚未读取');
+  assert.equal(p.elements.customLevelCount.textContent, '自定义关卡 — / 12');
   p.click('connectWear');
   p.event({ type: 'disconnected', token: 3, message: '未获得设备管理授权' });
   assert.equal(p.elements.connectWear.disabled, false);
-  assert.equal(p.elements.scanWear.disabled, false);
-  assert.match(p.elements.wearStatus.textContent, /未获得设备管理授权/);
+  p.click('connectWear'); p.event({ type: 'ready', token: 3 });
+  p.event({ type: 'message', token: 2, text: JSON.stringify({ tag: 'maze', type: 'list', levels: summaries(7, p.maze()) }) });
+  assert.equal(cards(p)[0].textContent, '尚未读取');
+  p.event({ type: 'message', token: 3, text: JSON.stringify({ tag: '__hs__', count: 1 }) });
+  assert.equal(p.sent.at(-1).message.stat, 'list'); assert.equal(p.elements.addLevel.disabled, true);
+  p.event({ type: 'message', token: 3, text: JSON.stringify({ tag: 'maze', type: 'list', levels: [] }) });
+  assert.equal(p.elements.addLevel.disabled, false);
 });

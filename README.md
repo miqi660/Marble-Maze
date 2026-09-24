@@ -1,51 +1,48 @@
 # 自定义迷宫同步器
 
-现有 Android 工程已接入离线迷宫生成器和小米穿戴 SDK 的同步代码。
+Android Compose → AndroidView WebView → 离线生成器 → sync-ui.js → sync-client.js → AndroidGenerator → WearConnection → 小米 Wearable SDK。保留原生成器、预览与导出及现有签名方案。
 
-## 当前功能
+## 当前功能和流程
 
-- 原样复用参考目录的 `generator-core.js`，支持四档难度、自定义合法尺寸、uint32 种子、随机生成、路径预览和粘贴 JSON 校验。
-- Android 剪贴板复制、系统文件选择器导出关卡及生成报告。
-- 查询小米运动健康中的已连接设备，申请互联授权，打开手环迷宫页面并握手。
-- 读取自定义 A/B 槽位，上传当前生成或导入的关卡、清空槽位；覆盖和清空由页面弹窗确认。
-- 串行处理操作，手环 ACK 成功后重新读取槽位并核对目标 ID/空槽位，再显示完成。SDK 发送成功不会直接显示同步成功。
-- 写入超时或发送失败视为结果可能未知，断开并要求重新连接查询，不自动重发写入。
+查询已连接设备、授权、注册监听成功后打开手环应用，完成 __hs__ 握手并自动 list。生成或导入合法关卡后可添加；替换、删除必须弹窗确认，取消不发送。
 
-## 使用流程
+手环最多保存 12 个连续自定义关卡。业务 index 为 0-based（0..11），UI 显示 01..12。删除中间关卡后手环自动压缩列表，后续编号前移，手机始终以重新查询的结果显示。
 
-1. 在小米运动健康中连接手环，并确保手环上已安装配对的弹珠迷宫。
-2. 在应用中点击“查询设备”，选择设备并连接；按系统提示授权。
-3. 握手成功后自动读取 A/B 槽位。
-4. 在下方生成或导入关卡，再点击对应槽位的“上传当前关卡”。
-5. 等待手环保存确认和槽位刷新。结果未知时先重连核对，不直接重复覆盖。
+- 0 项：显示“自定义关卡 0 / 12”“暂无自定义关卡”，当前生成关卡合法时可添加。
+- 6、7 项：动态显示 01..06、01..07，每项展示名称、尺寸、替换和删除按钮。
+- 12 项：禁用添加，替换和删除仍可用；删除并回读确认后恢复添加。
+- 断线清除旧列表；重新连接必须重新查询。页面重建会关闭连接并恢复默认生成参数，重要关卡请先导出。
 
-页面重建（例如旋转屏幕）会回到默认生成参数并关闭连接；重要关卡请先导出。若在同步中重建页面，操作可能已在手环执行，重连后查询槽位确认。
+## 协议基准和确认
 
-## 协议与文件
+唯一协议基准：`C:/Users/Administrator/Desktop/表盘/重置/弹珠迷宫/src` 当前源码，2026-09-24 核对。该目录只读。
+
+- 握手：`{"tag":"__hs__","count":0}`，只处理整数 0..2，手机最多尝试三次。
+- 查询：`{"tag":"maze","stat":"list"}` → `{tag:"maze",type:"list",levels:[{index,id,name,cols,rows}]}`。
+- 添加：`{tag:"maze",stat:"add",level:{...}}`，不指定 index，由手环追加。
+- 替换：`{tag:"maze",stat:"replace",index:2,level:{...}}`。
+- 删除：`{tag:"maze",stat:"remove",index:2}`。
+- ACK：`{tag:"maze",type:"ack",stat,index,ok,message}`；添加失败时不含 index。严格匹配 type、stat、相关 index、布尔 ok。
+- list 的 levels 必须是最多 12 项的数组，index 从 0 连续排列，cols/rows 为合法整数；`ok:false` 表示存储初始化失败，不能当作空列表成功。
+- `levelForSync()` 保留：同步时去掉 render，对不含 crc 的精简体 JSON UTF-8 字节计算 CRC-32，添加八位大写十六进制 crc。精简体仍限制 1024 字节；预览和导出保留 render。
+
+成功判定：请求 → ACK ok=true → 再次 list → 核对整个列表 → 显示成功。SDK sendMessage 成功和 ACK 本身均不代表最终成功。
+
+添加核对长度增加一项、追加目标及原摘要；替换核对长度不变、目标及其他摘要；删除核对长度减少一项及后续前移。摘要核对 id、name、cols、rows 和新 index。确认不匹配时断开业务连接并要求重连核对。写操作或 ACK 后查询 8 秒超时均视为结果未知，不自动重发 add/replace/remove。手环拒绝操作后也要求重连查询，避免继续使用可能过期的列表。
+
+协议没有请求 ID，list 不回传 CRC；串行操作、连接轮次隔离及全列表核对不能提供跨重连的严格请求关联或完整内容回读证明。
+
+## 文件职责
 
 | 文件 | 职责 |
 | --- | --- |
-| `app/src/main/assets/generator/tools/maze/generator-core.js` | 原始生成与完整校验算法 |
-| `app/src/main/assets/generator/index.html` | 生成、预览和槽位界面 |
-| `app/src/main/assets/generator/sync-client.js` | 精简体 CRC、握手、串行请求、业务确认与超时状态机 |
-| `app/src/main/assets/generator/sync-ui.js` | 页面与 Android 桥接事件、按钮状态和确认流程 |
-| `app/src/main/java/com/MarbleMaze/watch/WearConnection.kt` | SDK 设备发现、授权、启动、监听和字节传输；隔离旧连接回调 |
-| `app/src/main/java/com/MarbleMaze/watch/MainActivity.kt` | 本地 WebView、文件导出及 SDK 桥接；按需初始化 SDK |
-| `tests/fixtures/band/` | 参考手环接收端原始代码快照，仅用于本地协议测试 |
-
-以 `D:/code/MarbleMaze2/reference/src (2)` 中的实际接收端为准：
-
-- 握手：`{"tag":"__hs__","count":0}`，仅处理整数 0..2，最大重试三次。
-- 查询：`{"tag":"maze","stat":"list"}` → `{tag:"maze",type:"list",slots:[...]}`。
-- 上传：`{tag:"maze",stat:"put",slot:"a"或"b",level:{...}}`。
-- 清空：`{tag:"maze",stat:"clear",slot:"a"或"b"}`。
-- 上传/清空回复：`{tag:"maze",type:"ack",slot,ok,message}`。
-- `level` 去掉 `render`，对无 `crc` 的精简对象 `JSON.stringify` 后的 UTF-8 字节计算 CRC-32，添加八位大写十六进制 `crc`；精简体不超过 1024 字节。
-- 导出 JSON 保留原始 MazeDefinition v1（含 render），UTF-8 且无尾换行。生成页显示的字节数/CRC 对应导出文件，与精简同步消息不同。
-
-当前参考协议的 ACK 没有请求 ID，列表也不回传 CRC。串行请求、连接轮次隔离和 ACK 后列表核对可以减少迟到消息误判，但不能提供跨重连的严格请求关联或回读内容校验。未修改手环协议。
-
-两端包名都是 `com.MarbleMaze.watch`。实际互联还要求签名配对一致，详见 [小米官方 interconnect 文档](https://iot.mi.com/vela/quickapp/zh/features/network/interconnect.html)。签名排查结果见下节。
+| `app/src/main/assets/generator/tools/maze/generator-core.js` | 保留原生成与完整校验算法 |
+| `app/src/main/assets/generator/index.html` | 生成预览、导出及动态关卡列表容器 |
+| `app/src/main/assets/generator/sync-client.js` | 精简体、CRC、握手、串行请求和最终确认 |
+| `app/src/main/assets/generator/sync-ui.js` | 动态列表、桥接事件、按钮与确认弹窗 |
+| `app/src/main/java/com/MarbleMaze/watch/WearConnection.kt` | SDK 发现、授权、监听、启动和传输，保持不变 |
+| `app/src/main/java/com/MarbleMaze/watch/MainActivity.kt` | WebView 与桥接，保持不变 |
+| `tests/fixtures/band/` | 当前本地手环源码原样快照，仅用于测试 |
 
 ## fingerprint verify failed 排查与调试配置
 
@@ -64,25 +61,22 @@ Android `debug` 已指定使用 `.local-signing/vela-debug.p12`，release 配置
 python tools/import-vela-debug-signing.py --vela-project "C:\Users\Administrator\Desktop\表盘\重置\弹珠迷宫"
 ```
 
-本次没有构建、重签现有 APK 或安装。现有 APK 仍是旧签名；后续自行构建的 debug APK 才会使用新配置。若手机拒绝覆盖安装不同签名 APK，需先保存应用数据再手动卸载旧版安装新版。没有连接设备，本次未验证手机实际安装的 APK 或手环实际安装的 RPK，也未验证错误在真机消失。
+上述为上一阶段签名排查记录；本轮同步改造沿用已有 debug 签名配置。若手机拒绝覆盖安装不同签名 APK，需先保存应用数据再手动卸载旧版安装新版。没有连接设备，本次未验证手机实际安装的 APK 或手环实际安装的 RPK，也未验证错误在真机消失。
 
 SDK 沿用本机 BestLyrics 参考工程中的 1.4 AAR，来源与哈希见 `app/libs/README.md`。不增加定位、存储或蓝牙扫描权限；设备发现由穿戴服务提供。页面仅加载 APK 内白名单资源。
 
-## 本地检查（无需 Android 构建）
+## 本地测试与编译
 
 ```powershell
 node tests/generator-core.test.cjs
 node tests/generator-page.test.cjs
-node --test tests/sync-client.test.cjs tests/sync-ui.test.cjs
+node --test tests/storage-init.test.cjs tests/sync-client.test.cjs tests/sync-ui.test.cjs
 git diff --check
+.\gradlew.bat assembleDebug
 ```
 
-本轮检查：
+同步测试覆盖连续 12 关的边界、删除前移、异常 ACK/列表、超时、CRC、连接隔离与确认取消；使用实际 MazeSync、SlotStore fixture，仅替换平台通信和存储接口。模拟 DOM / Node 测试不是 Android WebView、SDK 或真机互联验证。
 
-- 生成器核心测试及原页面逻辑回归通过。
-- 11 项同步协议测试、3 项页面同步流程测试通过。包含参考接收端的 A/B 上传/查询/清空，CRC、拒绝、超时、旧连接和迟到错误，以及覆盖取消和 SDK 失败恢复。
-- 静态读取本地 AAR 的类签名，核对 NodeApi/AuthApi/MessageApi/ServiceApi 调用；未运行 SDK。
-- 按用户要求，本轮没有执行 Gradle、Android 编译、lint、APK 打包或安装。新增 Kotlin 代码未经过编译验证。
-- Mock/模拟 DOM 测试不是 Android WebView、SDK 或手环真实互联验证。
+APK 输出：`app/build/outputs/apk/debug/app-debug.apk`。本任务只测试、编译，不安装 APK、不执行 ADB 部署、不启动手机应用、不向手环传输文件。
 
-上一阶段曾通过 Kotlin 编译，但完整构建因 JVM 内存不足中断，日志保留在 `build/diagnostics/`；该历史结果不能作为本轮同步代码的编译证据。
+存储初始化失败时，手环 list 的 message 返回阶段、操作、key 和错误码，手机展示该信息。初始化失败允许下次查询重试；迁移跳过空旧键，不忽略真实存储失败。
