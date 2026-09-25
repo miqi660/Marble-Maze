@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const root = path.join(__dirname, '../app/src/main/assets/generator');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, 'fixtures/legacy-ui/index.html'), 'utf8');
 const elements = {};
 const drawing = new Proxy({}, { get: (obj, key) => obj[key] || (() => {}) });
 for (const [, id] of html.matchAll(/id="([^"]+)"/g)) {

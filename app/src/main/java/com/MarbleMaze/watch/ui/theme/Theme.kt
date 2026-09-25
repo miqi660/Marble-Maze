@@ -1,58 +1,27 @@
 package com.MarbleMaze.watch.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val AppColors = lightColorScheme(
+    primary = Color(0xFF705B00), onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFE895), onPrimaryContainer = Color(0xFF28230E),
+    secondaryContainer = Color(0xFFFFE895), onSecondaryContainer = Color(0xFF28230E),
+    background = Color(0xFFF8F8F5), surface = Color(0xFFFCFCF9),
+    surfaceContainerLow = Color.White, surfaceContainer = Color(0xFFF3F3EE),
+    onSurface = Color(0xFF242521), onSurfaceVariant = Color(0xFF6B6D65),
+    outlineVariant = Color(0xFFE2E3DC), tertiary = Color(0xFF39785C),
+    error = Color(0xFFAD4C46), errorContainer = Color(0xFFFFE9E5)
 )
 
 @Composable
-fun MarbleMazeTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+fun MarbleMazeTheme(content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = AppColors, typography = Typography,
+        shapes = androidx.compose.material3.Shapes(
+            small = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+            medium = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+            large = androidx.compose.foundation.shape.RoundedCornerShape(26.dp)), content = content)
 }

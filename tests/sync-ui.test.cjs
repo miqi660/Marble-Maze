@@ -7,7 +7,7 @@ const vm = require('node:vm');
 
 function page() {
   const root = path.join(__dirname, '../app/src/main/assets/generator');
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, 'fixtures/legacy-ui/index.html'), 'utf8');
   const elements = {};
   const drawing = new Proxy({}, { get: (obj, key) => obj[key] || (() => {}) });
   function element() {
@@ -38,9 +38,9 @@ function page() {
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  // 按页面中的实际顺序加载所有脚本，覆盖资源路径和初始化顺序。
+  // 保留旧页面交互作为回归基线；正式 APK 使用 native-runtime，另有独立状态测试。
   for (const script of html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>/g)) {
-    vm.runInContext(script[1] ? fs.readFileSync(path.join(root, script[1]), 'utf8') : script[2], sandbox);
+    vm.runInContext(script[1] ? fs.readFileSync(path.basename(script[1]) === 'sync-ui.js' ? path.join(__dirname, 'fixtures/legacy-ui/sync-ui.js') : path.join(root, script[1]), 'utf8') : script[2], sandbox);
   }
   const click = id => {
     assert.equal(elements[id].disabled, false, id + ' 应可点击');
