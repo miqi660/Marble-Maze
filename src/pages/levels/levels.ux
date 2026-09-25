@@ -1,48 +1,55 @@
-<import name="eyebrow" src="../../common/ui/eyebrow.ux"></import>
-
 <template>
   <stack class="page" @touchstart="onTouchStart" @touchend="onTouchEnd">
     <stack class="page page-content {{ slideClass }}">
     <!-- 页 1：Official -->
     <stack if="{{ pageIndex === 0 }}" class="page">
-      <div class="abs" style="left: 63px; top: 48px">
-        <eyebrow label="LEVELS" width="66" height="24"></eyebrow>
+      <div class="abs" style="left: 57px; top: 48px">
+        <text class="eyebrow" style="width: 78px">LEVELS</text>
       </div>
-      <text class="abs title title-shadow" style="left: 4px; top: 86px">选择关卡</text>
-      <text class="abs title" style="left: 0px; top: 82px">选择关卡</text>
+      <text class="abs title title-shadow" style="left: 20px; top: 86px">选择关卡</text>
+      <text class="abs title" style="left: 16px; top: 82px">选择关卡</text>
+      <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
       <div class="abs bar" style="left: 43px; top: 117px"></div>
 
-      <!-- 2 列网格 @top148，卡片 74×68，列距 13，行距 8 -->
+      <!-- 2 列网格 @top148，卡片 74×68，列距 8，行距 13 -->
       <block for="{{ (i, item) in officialCards }}">
-        <div class="abs shadow" show="{{ !item.locked }}" style="left: {{ item.left + 4 }}px; top: {{ item.top + 4 }}px; background-color: {{ item.selected ? '#FF5B8D' : '#111111' }}"></div>
+        <div class="abs shadow" style="left: {{ item.left + 4 }}px; top: {{ item.top + 4 }}px; background-color: {{ item.locked ? '#8A847C' : item.selected ? '#FF5B8D' : '#111111' }}"></div>
         <div class="abs card" style="left: {{ item.left }}px; top: {{ item.top }}px; background-color: {{ item.locked ? '#D9D4CC' : item.selected ? '#FFD323' : '#FFFFFF' }}" @click="playOfficial(i)">
-          <text class="card-no" style="color: {{ item.locked ? '#66615B' : '#111111' }}">{{ item.no }}</text>
-          <text class="card-diff">{{ item.locked ? '锁定' : item.diff }}</text>
+          <text class="card-label" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.locked ? '未解锁' : '关卡' }}</text>
+          <text class="card-no" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.no }}</text>
           <div class="check" show="{{ item.cleared }}"><text class="check-txt">✓</text></div>
+          <div class="lock" show="{{ item.locked }}">
+            <div class="lock-shackle"></div>
+            <div class="lock-body"></div>
+            <div class="lock-keyhole"></div>
+            <div class="lock-keyhole-stem"></div>
+          </div>
         </div>
       </block>
 
       <!-- 进度卡 156×36 @top395 -->
       <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
-      <div class="abs prog" style="left: 18px; top: 395px">
-        <text class="prog-txt">已通关 {{ progress }} / {{ officialCount }}</text>
+      <div class="abs prog prog-between" style="left: 18px; top: 395px">
+        <text class="prog-label">已完成</text>
+        <text class="prog-count">{{ progress }} / {{ officialCount }}</text>
       </div>
     </stack>
 
     <!-- 页 2/3：统一自定义关卡，每页 2 列 × 3 行。 -->
     <stack if="{{ pageIndex > 0 }}" class="page">
       <div class="abs" style="left: 55px; top: 48px">
-        <eyebrow label="CUSTOM" width="82" height="24"></eyebrow>
+        <text class="eyebrow" style="width: 82px">CUSTOM</text>
       </div>
-      <text class="abs title title-shadow" style="left: 4px; top: 86px">自定义</text>
-      <text class="abs title" style="left: 0px; top: 82px">自定义</text>
+      <text class="abs title title-shadow" style="left: 20px; top: 86px">自定义</text>
+      <text class="abs title" style="left: 16px; top: 82px">自定义</text>
+      <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
       <div class="abs bar" style="left: 43px; top: 117px"></div>
       <block for="{{ (ci, card) in customCards }}">
         <block if="{{ card.page === pageIndex && card.type === 'level' }}">
           <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #111111"></div>
           <div class="abs card" style="left: {{ card.left }}px; top: {{ card.top }}px; background-color: #FFFFFF" @click="playCustom(card.index)">
+            <text class="card-label">{{ card.diffLabel }}</text>
             <text class="card-no">{{ card.no }}</text>
-            <text class="card-diff">{{ card.diffLabel }}</text>
           </div>
         </block>
         <block if="{{ card.page === pageIndex && card.type === 'add' }}">
@@ -59,7 +66,7 @@
     </stack>
     </stack>
     <div class="abs pagination" style="left: 0px; top: 446px">
-      <div class="page-dot" for="{{ pageDots }}" style="background-color: {{ $item.active ? '#FF5B8D' : '#F3EFE7' }}"></div>
+      <div class="page-dot" for="{{ pageDots }}" style="background-color: {{ $item.active ? '#FF5B8D' : $item.index === 0 ? '#F3EFE7' : '#FFD323' }}; border-color: {{ $item.active ? '#FF5B8D' : '#111111' }}"></div>
     </div>
   </stack>
 </template>
@@ -70,8 +77,6 @@ import { OFFICIAL, DIFFICULTY_LABEL } from '../../common/levels.js'
 import { returnToPage } from '../../common/navigation.js'
 
 import CustomLevels from '../../common/custom-levels.js'
-
-const DIFF_SHORT = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', expert: 'EXPERT' }
 
 export default {
   private: {
@@ -120,7 +125,7 @@ export default {
     this.onHide()
   },
 
-  /** Official 网格：2 列，卡 74×68，列距 13，行距 8，@top148，整体居中（74*2+13=161 → left 15） */
+  /** Official 网格：2 列，卡 74×68，列距 8，行距 13，@top148，左右各留 18 */
   buildCards() {
     const progress = this.$app.$def.progress
     if (this.officialCards.length && this.progress === progress) return
@@ -130,10 +135,9 @@ export default {
       const col = i % 2
       const row = Math.floor(i / 2)
       cards.push({
-        no: String(i + 1),
-        diff: DIFF_SHORT[OFFICIAL[i].difficulty],
-        left: 15 + col * (74 + 13),
-        top: 148 + row * (68 + 8),
+        no: i + 1 < 10 ? '0' + (i + 1) : String(i + 1),
+        left: 18 + col * (74 + 8),
+        top: 148 + row * (68 + 13),
         cleared: i < progress,
         selected: i === Math.min(progress, OFFICIAL.length - 1),
         locked: i > progress
@@ -156,8 +160,8 @@ export default {
         page: 1 + Math.floor(index / CustomLevels.CUSTOM_PAGE_SIZE),
         level,
         diffLabel: DIFFICULTY_LABEL[level.difficulty] || '自定义',
-        left: 15 + (localIndex % 2) * 87,
-        top: 148 + Math.floor(localIndex / 2) * 76
+        left: 18 + (localIndex % 2) * 82,
+        top: 148 + Math.floor(localIndex / 2) * 81
       })
     }
     const count = levels.length
@@ -167,8 +171,8 @@ export default {
         type: 'add',
         index: count,
         page: 1 + Math.floor(count / CustomLevels.CUSTOM_PAGE_SIZE),
-        left: 15 + (localIndex % 2) * 87,
-        top: 148 + Math.floor(localIndex / 2) * 76
+        left: 18 + (localIndex % 2) * 82,
+        top: 148 + Math.floor(localIndex / 2) * 81
       })
     }
     this.customCount = count
@@ -282,8 +286,19 @@ export default {
   0% { transform: translateX(-192px); }
   100% { transform: translateX(0px); }
 }
+.eyebrow {
+  height: 24px;
+  background-color: #111111;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-align: center;
+}
 .title {
-  width: 192px;
+  width: 160px;
+  height: 39px;
+  letter-spacing: -2px;
   font-size: 33px;
   font-weight: 900;
   color: #111111;
@@ -296,6 +311,11 @@ export default {
   width: 106px;
   height: 8px;
   background-color: #ff5b8d;
+}
+.bar-shadow {
+  width: 106px;
+  height: 8px;
+  background-color: #111111;
 }
 .shadow {
   width: 74px;
@@ -310,22 +330,30 @@ export default {
   align-items: center;
 }
 .card-no {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  height: 36px;
   color: #111111;
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 900;
+  letter-spacing: -2px;
 }
-.card-diff {
-  font-size: 10px;
+.card-label {
+  position: absolute;
+  left: 8px;
+  top: 7px;
+  font-size: 11px;
+  letter-spacing: 0px;
   font-weight: 900;
-  color: #66615b;
-  letter-spacing: 0.5px;
+  color: #111111;
 }
 .check {
   position: absolute;
-  right: 0px;
-  top: 0px;
-  width: 16px;
-  height: 16px;
+  right: 5px;
+  top: 4px;
+  width: 17px;
+  height: 17px;
   background-color: #111111;
   justify-content: center;
   align-items: center;
@@ -334,6 +362,48 @@ export default {
   color: #ffffff;
   font-size: 11px;
   font-weight: 900;
+}
+.lock {
+  position: absolute;
+  right: 4px;
+  top: 6px;
+  width: 16px;
+  height: 20px;
+}
+.lock-shackle {
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 10px;
+  height: 13px;
+  border: 2px solid #111111;
+  border-radius: 5px;
+}
+.lock-body {
+  position: absolute;
+  left: 0px;
+  top: 8px;
+  width: 16px;
+  height: 12px;
+  background-color: #111111;
+  border-radius: 2px;
+}
+.lock-keyhole {
+  position: absolute;
+  left: 6px;
+  top: 11px;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #d9d4cc;
+}
+.lock-keyhole-stem {
+  position: absolute;
+  left: 7px;
+  top: 14px;
+  width: 2px;
+  height: 3px;
+  background-color: #d9d4cc;
 }
 .prog-shadow {
   width: 156px;
@@ -345,8 +415,24 @@ export default {
   height: 36px;
   background-color: #ffffff;
   border: 3px solid #111111;
+  flex-direction: row;
   justify-content: center;
   align-items: center;
+}
+.prog-between {
+  justify-content: space-between;
+  padding-left: 9px;
+  padding-right: 9px;
+}
+.prog-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: #111111;
+}
+.prog-count {
+  font-size: 20px;
+  font-weight: 900;
+  color: #111111;
 }
 .prog-txt {
   font-size: 14px;
@@ -368,11 +454,11 @@ export default {
   align-items: center;
 }
 .page-dot {
-  width: 8px;
-  height: 8px;
-  margin-left: 4px;
-  margin-right: 4px;
+  width: 9px;
+  height: 9px;
+  margin-left: 3.5px;
+  margin-right: 3.5px;
   border: 2px solid #111111;
-  border-radius: 4px;
+  border-radius: 5px;
 }
 </style>

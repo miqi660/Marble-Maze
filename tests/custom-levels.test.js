@@ -202,7 +202,7 @@ function viewModelTests() {
       const secondPage = page.customCards.filter((card) => card.page === 2)
       assert.strictEqual(secondPage.length, 1)
       assert.strictEqual(secondPage[0].type, 'add')
-      assert.strictEqual(secondPage[0].left, 15)
+      assert.strictEqual(secondPage[0].left, 18)
       assert.strictEqual(secondPage[0].top, 148)
     }
     if (count === 7) {
