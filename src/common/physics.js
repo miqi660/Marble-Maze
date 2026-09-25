@@ -13,6 +13,13 @@
   var WALL_E = 2;
   var WALL_S = 4;
   var WALL_W = 8;
+  // 仅按运行时 level 身份缓存；替换/删除后不保留旧关卡的强引用。
+  var collisionCache = new WeakMap();
+
+  function getCollisionIndex(level) {
+    if (!collisionCache.has(level)) collisionCache.set(level, buildCollisionIndex(level));
+    return collisionCache.get(level);
+  }
 
   var CONST = {
     R: 0.28, // 球半径（cell）
@@ -213,6 +220,7 @@
     normalizeTilt: normalizeTilt,
     createState: createState,
     buildCollisionIndex: buildCollisionIndex,
+    getCollisionIndex: getCollisionIndex,
     collectSegments: collectSegments,
     step: step,
     reachedGoal: reachedGoal,

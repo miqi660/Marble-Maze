@@ -115,6 +115,7 @@ export default {
 
   onHide() {
     this.active = false
+    this.stopWarmup()
     this.touchStart = null
     this.stopSlide()
     if (this.unsubscribeSlots) this.unsubscribeSlots()
@@ -181,6 +182,32 @@ export default {
     this.stopSlide()
     this.pageIndex = Math.min(this.pageIndex, this.maxPageIndex())
     this.updatePageDots()
+    this.startWarmup()
+  },
+
+  stopWarmup() {
+    this.warmupSession = null
+    if (this.warmupTimer) clearTimeout(this.warmupTimer)
+    this.warmupTimer = null
+  },
+
+  /** 翻页结束后逐关预热，每关之间归还事件循环。 */
+  startWarmup() {
+    this.stopWarmup()
+    if (!this.active || this.leaving || this.slideClass || this.pageIndex === 0) return
+    const store = this.$app.$def.slotStore
+    let index = (this.pageIndex - 1) * CustomLevels.CUSTOM_PAGE_SIZE
+    const end = Math.min(index + CustomLevels.CUSTOM_PAGE_SIZE, this.customCount)
+    const session = {}
+    this.warmupSession = session
+    const next = () => {
+      if (this.warmupSession !== session || !this.active || this.leaving) return
+      this.warmupTimer = null
+      if (index >= end || !store.get(index)) return
+      store.getLevel(index++)
+      if (index < end) this.warmupTimer = setTimeout(next, 0)
+    }
+    if (index < end) this.warmupTimer = setTimeout(next, 0)
   },
 
   updatePageDots() {
@@ -198,9 +225,13 @@ export default {
   switchPage(index) {
     if (this.slideClass || this.leaving || index === this.pageIndex || index < 0 || index > this.maxPageIndex()) return
     this.slideClass = index > this.pageIndex ? 'slide-from-right' : 'slide-from-left'
+    this.stopWarmup()
     this.pageIndex = index
     this.updatePageDots()
-    this.slideTimer = setTimeout(() => this.stopSlide(), 220)
+    this.slideTimer = setTimeout(() => {
+      this.stopSlide()
+      this.startWarmup()
+    }, 220)
   },
 
   stopSlide() {
@@ -231,6 +262,7 @@ export default {
   goHome() {
     if (this.leaving) return
     this.leaving = true
+    this.stopWarmup()
     returnToPage('/pages/home')
   },
 
@@ -244,6 +276,7 @@ export default {
   playOfficial(i) {
     if (this.leaving || this.slideClass || !this.officialCards[i] || this.officialCards[i].locked) return
     this.leaving = true
+    this.stopWarmup()
     this.$app.$def.feedback()
     router.push({ uri: '/pages/game', params: { pack: 'official', index: String(i) } })
   },
@@ -252,6 +285,7 @@ export default {
     const card = this.customCards.find((item) => item.type === 'level' && item.index === index)
     if (this.leaving || this.slideClass || !card) return
     this.leaving = true
+    this.stopWarmup()
     this.$app.$def.feedback()
     router.push({ uri: '/pages/game', params: { pack: 'custom', index: String(index) } })
   }

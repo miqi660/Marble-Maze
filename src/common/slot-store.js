@@ -146,10 +146,17 @@ export default class SlotStore {
   async loadCurrent() {
     this.stage = '读取连续关卡'
     const raw = []
-    for (let index = 0; index < CustomLevels.MAX_CUSTOM_LEVELS; index++) {
-      const result = await this.getValue(CustomLevels.storageKey(index))
-      if (!result.ok) return false
-      raw.push(result.value)
+    // 每批最多三个请求；按槽序消费结果，整批失败时不修复或发布缓存。
+    for (let index = 0; index < CustomLevels.MAX_CUSTOM_LEVELS; index += 3) {
+      const pending = []
+      for (let offset = index; offset < Math.min(index + 3, CustomLevels.MAX_CUSTOM_LEVELS); offset++) {
+        pending.push(this.getValue(CustomLevels.storageKey(offset)))
+      }
+      const results = await Promise.all(pending)
+      for (let offset = 0; offset < results.length; offset++) {
+        if (!results[offset].ok) return false
+        raw.push(results[offset].value)
+      }
     }
 
     const compacted = []

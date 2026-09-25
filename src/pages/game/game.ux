@@ -3,8 +3,8 @@
 
 <template>
   <stack class="page">
-    <!-- HUD：左 LV 标签（粉阴影），右计时（黄阴影） -->
-    <div class="abs hud-shadow" style="left: 12px; top: 61px; background-color: #ff5b8d; width: 80px"></div>
+    <!-- HUD：左当前关卡标签（粉阴影），右计时（黄阴影） -->
+    <div class="abs hud-shadow" style="left: 11px; top: 61px; background-color: #ff5b8d; width: 80px"></div>
     <div class="abs hud lv" style="left: 8px; top: 57px">
       <text class="hud-text lv-text">{{ levelName }}</text>
     </div>
@@ -23,6 +23,11 @@
       <div class="abs wall" for="{{ walls }}" style="left: {{ $item.l }}px; top: {{ $item.t }}px; width: {{ $item.w }}px; height: {{ $item.h }}px"></div>
       <div class="abs ball {{ ballClass }}" style="{{ ballStyle }}"></div>
     </stack>
+
+    <div if="{{ loading }}" class="abs loading-shadow"></div>
+    <div if="{{ loading }}" class="abs loading-card">
+      <text class="loading-text">正在准备关卡</text>
+    </div>
 
     <div class="abs" style="left: 35px; top: 395px" @click="onRestart">
       <btn-hard label="重来" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18"></btn-hard>
@@ -46,12 +51,18 @@ const INNER_W = 184
 /** 按钮 top 395 - 迷宫 top 100 - 阴影 5 - 间隔 4。 */
 const INNER_H = 286
 
+function customLevelTitle(index) {
+  const number = index + 1
+  return '自定义' + (number < 10 ? '0' + number : String(number))
+}
+
 export default {
   protected: {
     pack: 'official',
     index: 0
   },
   private: {
+    loading: false,
     levelName: 'LV 1',
     timeText: '00.0',
     cellPx: 20,
@@ -78,6 +89,7 @@ export default {
       this.onBackPress()
       return
     }
+    if (this.pack === 'custom') this.levelName = customLevelTitle(this.index)
     // 非响应式运行时数据挂在 this 上，避免触发视图刷新
     this.level = null
     this.collisionIndex = null
@@ -97,27 +109,67 @@ export default {
     if (this.pack === 'official') {
       this.setupLevel(buildOfficial(this.index))
     } else {
-      this.$app.$def.slotStore.ready.then((ready) => {
-        if (this.disposed) return
-        if (ready === false) {
-          this.onBackPress()
-          return
-        }
-        const level = this.$app.$def.slotStore.getLevel(this.index)
-        if (!level) {
-          this.onBackPress()
-          return
-        }
-        this.setupLevel(level)
-      })
+      this.startPreparation()
     }
+  },
+
+  startPreparation() {
+    if (this.pack !== 'custom' || this.ready || this.disposed || this.prepareSession) return
+    const session = {}
+    this.prepareSession = session
+    const started = Date.now()
+    const current = () => this.prepareSession === session && !this.disposed
+    this.loadingTimer = setTimeout(() => {
+      if (!current()) return
+      this.loadingTimer = null
+      if (!this.ready && !this.loading) this.loading = true
+    }, 80)
+    // 阶段之间让出事件循环；单个同步阶段超时后也有机会绘制兜底提示。
+    const schedule = (work) => {
+      if (!current()) return
+      if (Date.now() - started >= 80 && !this.loading) this.loading = true
+      this.prepareTimer = setTimeout(() => {
+        if (!current()) return
+        this.prepareTimer = null
+        try { work() } catch (error) {
+          console.log('[maze] 准备关卡失败: ' + error)
+          this.onBackPress()
+        }
+      }, 0)
+    }
+    this.$app.$def.slotStore.ready.then((ready) => {
+      if (!current()) return
+      if (ready === false) {
+        this.onBackPress()
+        return
+      }
+      schedule(() => {
+        const level = this.$app.$def.slotStore.getLevel(this.index)
+        if (!level) { this.onBackPress(); return }
+        schedule(() => {
+          Physics.getCollisionIndex(level)
+          schedule(() => this.setupLevel(level))
+        })
+      })
+    }).catch(() => {
+      if (current()) this.onBackPress()
+    })
+  },
+
+  stopPreparation() {
+    this.prepareSession = null
+    if (this.prepareTimer) clearTimeout(this.prepareTimer)
+    if (this.loadingTimer) clearTimeout(this.loadingTimer)
+    this.prepareTimer = null
+    this.loadingTimer = null
+    if (this.loading) this.loading = false
   },
 
   /** 载入关卡：计算尺寸、生成静态墙段、放置球 */
   setupLevel(level) {
     this.level = level
-    this.collisionIndex = Physics.buildCollisionIndex(level)
-    this.levelName = level.name || 'CUSTOM'
+    this.collisionIndex = this.pack === 'custom' ? Physics.getCollisionIndex(level) : Physics.buildCollisionIndex(level)
+    if (this.pack !== 'custom') this.levelName = level.name || 'LV ' + (this.index + 1)
     const cols = level.cols
     const rows = level.rows
     const cellPx = Math.min(INNER_W / cols, INNER_H / rows)
@@ -181,6 +233,7 @@ export default {
 
     this.ready = true
     this.resetRuntime()
+    this.stopPreparation()
   },
 
   /** 只重置球位置/速度/计时/finished，不触碰传感器订阅与定时器 */
@@ -211,6 +264,7 @@ export default {
 
   onShow() {
     if (this.disposed || this.finished || this.running) return
+    this.startPreparation()
     this.running = true
     // 每次恢复建立独立会话，隔离上次订阅/定时器的迟到回调。
     const session = {}
@@ -246,17 +300,20 @@ export default {
   },
 
   onHide() {
+    this.stopPreparation()
     this.stopLoop()
   },
 
   onDestroy() {
     this.disposed = true
+    this.stopPreparation()
     this.stopLoop()
   },
 
   onBackPress() {
     if (this.disposed) return true
     this.disposed = true
+    this.stopPreparation()
     this.stopLoop()
     returnToPage('/pages/levels')
     return true
@@ -356,6 +413,28 @@ export default {
 .abs {
   position: absolute;
 }
+.loading-shadow {
+  left: 22px;
+  top: 225px;
+  width: 156px;
+  height: 44px;
+  background-color: #ff5b8d;
+}
+.loading-card {
+  left: 18px;
+  top: 221px;
+  width: 156px;
+  height: 44px;
+  border: 3px solid #111111;
+  background-color: #ffd323;
+  justify-content: center;
+  align-items: center;
+}
+.loading-text {
+  font-size: 16px;
+  color: #111111;
+  font-weight: bold;
+}
 .hud-shadow {
   height: 34px;
 }
@@ -369,6 +448,7 @@ export default {
 .lv {
   width: 80px;
   background-color: #111111;
+  padding: 0 4px;
 }
 .timer {
   width: 86px;
@@ -380,7 +460,14 @@ export default {
   text-align: center;
 }
 .lv-text {
+  width: 66px;
+  height: 16px;
   color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+  lines: 1;
+  line-height: 16px;
+  text-overflow: clip;
 }
 .timer-text {
   color: #111111;

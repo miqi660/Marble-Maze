@@ -61,7 +61,7 @@ export default {
     } else if (this.pack === 'custom') {
       this.index = Math.max(0, Math.min(CustomLevels.MAX_CUSTOM_LEVELS - 1, requestedIndex))
       const no = this.index + 1
-      this.levelName = 'CUSTOM ' + (no < 10 ? '0' + no : String(no))
+      this.levelName = '自定义' + (no < 10 ? '0' + no : String(no))
       this.hasNext = false
     } else {
       this.index = 0

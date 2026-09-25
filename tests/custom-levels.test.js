@@ -294,26 +294,44 @@ async function gameAndCompleteTests() {
     ready: Promise.resolve(true),
     getLevel(index) { return index >= 0 && index < 12 ? { name: '第 ' + (index + 1) + ' 关' } : null }
   }
-  const gameDefinition = load('src/pages/game/game.ux', { returnToPage(path) { loaded.push(path) } })
+  const pending = new Map()
+  let timerId = 0
+  const gameDefinition = load('src/pages/game/game.ux', {
+    returnToPage(path) { loaded.push(path) },
+    Physics: { getCollisionIndex() { return [] } },
+    setTimeout(fn, ms) { const id = ++timerId; pending.set(id, { fn, ms }); return id },
+    clearTimeout(id) { pending.delete(id) }
+  })
+  async function prepare() {
+    await Promise.resolve()
+    while (true) {
+      const task = Array.from(pending).find(([, timer]) => timer.ms === 0)
+      if (!task) break
+      pending.delete(task[0])
+      task[1].fn()
+    }
+  }
   for (const index of [0, 5, 6, 11]) {
     const game = Object.assign({}, gameDefinition, { pack: 'custom', index: String(index), $app: { $def: { slotStore: store } }, setupLevel(level) { this.levelLoaded = level } })
     game.onInit()
-    await Promise.resolve()
+    await prepare()
     assert.strictEqual(game.index, index)
     assert.strictEqual(game.levelLoaded.name, '第 ' + (index + 1) + ' 关')
-    if (index === 0) game.onBackPress()
+    game.onBackPress()
   }
   assert.ok(loaded.includes('/pages/levels'), 'game 返回现有 levels 页面')
   const missing = Object.assign({}, gameDefinition, { pack: 'custom', index: '11', $app: { $def: { slotStore: { ready: Promise.resolve(true), getLevel() { return null } } } } })
   missing.onInit()
-  await Promise.resolve()
-  assert.strictEqual(loaded[0], '/pages/levels', '不存在的自定义关卡安全返回')
+  const beforeMissing = loaded.length
+  await prepare()
+  assert.strictEqual(loaded.length, beforeMissing + 1, '不存在的自定义关卡安全返回')
+  assert.strictEqual(pending.size, 0, '返回后准备计时器全部释放')
 
   const completeDefinition = load('src/pages/complete/complete.ux', { returnToPage(path) { loaded.push(path) } })
   for (const index of [0, 5, 6, 11]) {
     const complete = Object.assign({}, completeDefinition, { pack: 'custom', index: String(index) })
     complete.onInit()
-    const expected = index + 1 < 10 ? 'CUSTOM 0' + (index + 1) : 'CUSTOM ' + (index + 1)
+    const expected = '自定义' + (index + 1 < 10 ? '0' + (index + 1) : String(index + 1))
     assert.strictEqual(complete.levelName, expected)
     assert.strictEqual(complete.hasNext, false)
     if (index === 11) complete.onBack()
