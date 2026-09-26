@@ -52,14 +52,13 @@ fun EditorScreen(vm: MazeViewModel, preview: () -> Unit, seed: () -> Unit, impor
                 }
             }
             Text("目标设备", style = MaterialTheme.typography.titleMedium)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                listOf("band", "pro").forEach { profile ->
-                    BrutalSegment(profile.uppercase(), state.profile == profile, { vm.selectProfile(profile) }, Modifier.weight(1f), loading = state.isGenerating)
-                }
-            }
+            val profileOptions = remember { listOf(NeoJellyRadioItem("BAND"), NeoJellyRadioItem("PRO")) }
+            NeoJellyRadioGroup(profileOptions, if (state.profile == "pro") 1 else 0, { index ->
+                vm.selectProfile(if (index == 1) "pro" else "band")
+            })
             if (device.connected) Text("当前设备 · ${device.deviceName} · ${state.deviceVariant?.profile ?: "型号未识别"}", style = MaterialTheme.typography.bodySmall)
             Text("难度", style = MaterialTheme.typography.titleMedium)
-            DifficultySelector(state.preset, loading = state.isGenerating, select = vm::preset)
+            DifficultySelector(state.preset, select = vm::preset)
             Text("Seed", style = MaterialTheme.typography.titleMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 BrutalOutlinedButton(onClick = seed, loading = state.isGenerating, modifier = Modifier.weight(1f)) { Text("${state.seed}", style = MaterialTheme.typography.titleMedium) }

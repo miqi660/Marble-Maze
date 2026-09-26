@@ -20,12 +20,11 @@ fun PageHeader(eyebrow: String, title: String, subtitle: String, modifier: Modif
 }
 
 @Composable
-fun DifficultySelector(selected: String, enabled: Boolean = true, loading: Boolean = false, select: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        MazeViewModel.presets.keys.forEach { key ->
-            BrutalSegment(MazeViewModel.label(key), key == selected, { select(key) }, Modifier.weight(1f), enabled, loading)
-        }
-    }
+fun DifficultySelector(selected: String, enabled: Boolean = true, select: (String) -> Unit) {
+    val options = remember { MazeViewModel.presets.keys.map { NeoJellyRadioItem(MazeViewModel.label(it)) } }
+    NeoJellyRadioGroup(options, MazeViewModel.presets.keys.indexOf(selected), { index ->
+        MazeViewModel.presets.keys.elementAtOrNull(index)?.let(select)
+    }, enabled = enabled)
 }
 
 @Composable

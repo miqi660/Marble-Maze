@@ -2,6 +2,8 @@ package com.MarbleMaze.watch.ui.app
 
 import android.graphics.Paint
 import android.graphics.Typeface
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
@@ -13,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -20,12 +23,33 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.MarbleMaze.watch.ui.theme.BrutalColors
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /** 固定预览区域中，对设备几何做动画；不淡出页面，也不复制迷宫算法。 */
 @Composable
 fun DevicePreview(maze: MazeDefinition?, modifier: Modifier = Modifier, variant: DeviceVariant? = null,
                   seed: Long? = null, showPath: Boolean = false, profile: String = maze?.profile ?: "band") {
     val geometry = DeviceRenderProfile.resolve(profile, variant, maze?.cols ?: 8, maze?.rows ?: 15)
+    val previewScale = remember { Animatable(1f) }
+    val previewAlpha = remember { Animatable(1f) }
+    val previewOffsetY = remember { Animatable(0f) }
+    val previewSpring = remember { spring<Float>(stiffness = 800f, dampingRatio = 0.82f) }
+    val previousTarget = remember { mutableStateOf(profile to variant) }
+    LaunchedEffect(profile, variant) {
+        val target = profile to variant
+        if (previousTarget.value != target) {
+            previousTarget.value = target
+            coroutineScope {
+                previewScale.snapTo(0.97f)
+                previewAlpha.snapTo(0.90f)
+                previewOffsetY.snapTo(6f)
+                launch { previewScale.animateTo(1f, previewSpring) }
+                launch { previewAlpha.animateTo(1f, previewSpring) }
+                launch { previewOffsetY.animateTo(0f, previewSpring) }
+            }
+        }
+    }
     // 只在设备型号变化时过渡设备外形；难度变化直接更新迷宫区域，避免预览画布来回移动。
     val transition = updateTransition(profile to variant, label = "目标设备几何")
     fun deviceGeometry(target: Pair<String, DeviceVariant?>) =
@@ -44,7 +68,12 @@ fun DevicePreview(maze: MazeDefinition?, modifier: Modifier = Modifier, variant:
     val mazeHeight = geometry.mazeHeight
     val label = devicePreviewLabel(profile, variant)
     val paint = remember { Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER } }
-    Canvas(modifier.semantics { contentDescription = "$label 设备预览，${maze?.cols ?: 0} 列 ${maze?.rows ?: 0} 行，绿色起点、红色终点" }) {
+    Canvas(modifier.graphicsLayer {
+        scaleX = previewScale.value
+        scaleY = previewScale.value
+        alpha = previewAlpha.value
+        translationY = previewOffsetY.value.dp.toPx()
+    }.semantics { contentDescription = "$label 设备预览，${maze?.cols ?: 0} 列 ${maze?.rows ?: 0} 行，绿色起点、红色终点" }) {
         val padding = 12.dp.toPx()
         val fit = minOf((size.width - 2 * padding) / width, (size.height - 2 * padding) / height).coerceAtLeast(0f)
         val ox = (size.width - width * fit) / 2

@@ -1,6 +1,8 @@
 package com.MarbleMaze.watch
 
 import com.MarbleMaze.watch.ui.app.DeviceUiState
+import com.MarbleMaze.watch.ui.app.GenerationQueue
+import com.MarbleMaze.watch.ui.app.GenerationRequest
 import com.MarbleMaze.watch.ui.app.MazeViewModel
 import org.junit.Assert.*
 import org.junit.Test
@@ -25,5 +27,27 @@ class NativeUiStateTest {
         assertEquals("band", com.MarbleMaze.watch.ui.app.DeviceVariant.identify("Xiaomi Smart Band 10")?.profile)
         assertEquals("pro", com.MarbleMaze.watch.ui.app.DeviceVariant.identify("Xiaomi Smart Band 9 Pro")?.profile)
         assertNull(com.MarbleMaze.watch.ui.app.DeviceVariant.identify("未知设备"))
+    }
+
+    @Test fun rapidProfileChangesKeepTheLastRequestedDevice() {
+        val queue = GenerationQueue()
+        val first = GenerationRequest(8, 15, 38291627, "band")
+        val band = GenerationRequest(8, 15, 38291627, "band")
+        val pro = GenerationRequest(12, 10, 38291627, "pro")
+
+        assertEquals(first, queue.enqueue(first))
+        assertNull(queue.enqueue(pro))
+        assertNull(queue.enqueue(band))
+        assertNull(queue.enqueue(pro))
+        assertEquals(pro, queue.pending)
+        assertEquals("pro", queue.requested?.profile)
+
+        assertNull(queue.complete(band.copy(seed = 7), failed = false))
+        assertEquals(first, queue.active)
+        assertEquals(pro, queue.complete(first, failed = false))
+        assertEquals(pro, queue.active)
+        assertNull(queue.complete(pro, failed = false))
+        assertFalse(queue.isInFlight)
+        assertNull(queue.requested)
     }
 }

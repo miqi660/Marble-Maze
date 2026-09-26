@@ -57,14 +57,19 @@ fun MarbleMazeApp(vm: MazeViewModel, copy: (String) -> Unit, paste: () -> String
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when (page) {
                 "preview" -> Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("目标设备", Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelLarge)
+                    val profileOptions = remember { listOf(NeoJellyRadioItem("BAND"), NeoJellyRadioItem("PRO")) }
+                    NeoJellyRadioGroup(profileOptions, if (vm.editor.profile == "pro") 1 else 0, { index ->
+                        vm.selectProfile(if (index == 1) "pro" else "band")
+                    })
                     BrutalCard(Modifier.fillMaxWidth().weight(1f), border = 3.dp, depth = 4.dp) {
                         DevicePreview(vm.editor.maze, Modifier.fillMaxSize(), previewVariant, vm.editor.seed, showPath, vm.editor.profile)
                     }
-                    Spacer(Modifier.height(16.dp))
-                    BrutalButton(onClick = { showPath = !showPath }, color = if (showPath) BrutalColors.Yellow else BrutalColors.Paper, border = 2.dp, depth = 2.dp) {
-                        AppIcon("route"); Spacer(Modifier.width(8.dp)); Text(if (showPath) "最短路径 · 已显示" else "最短路径 · 已隐藏")
-                    }
-                    Text("${vm.editor.cols} × ${vm.editor.rows} · ${MazeViewModel.label(vm.editor.preset)}", Modifier.padding(24.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text("预览模式", Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelLarge)
+                    val previewOptions = remember { listOf(NeoJellyRadioItem("标准"), NeoJellyRadioItem("路径")) }
+                    NeoJellyRadioGroup(previewOptions, if (showPath) 1 else 0, { showPath = it == 1 })
+                    Text("${vm.editor.cols} × ${vm.editor.rows} · ${MazeViewModel.label(vm.editor.preset)}", Modifier.padding(18.dp))
                 }
                 "details" -> LevelDetails(vm.editor)
                 else -> if (tab == 0) EditorScreen(vm, { page = "preview" }, { sheet = "seed" }, { sheet = "importSpec" }, {

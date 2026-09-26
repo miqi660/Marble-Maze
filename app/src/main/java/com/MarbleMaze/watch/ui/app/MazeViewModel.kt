@@ -30,20 +30,75 @@ data class DeviceUiState(
     val canOperate get() = connected && !busy && !preparing && !unknown && levels != null
 }
 
+internal data class GenerationRequest(val cols: Int, val rows: Int, val seed: Long, val profile: String)
+
+/** 一个生成请求执行时只保留最新后续选择；完成响应必须匹配当前请求。 */
+internal class GenerationQueue {
+    private var activeRequest: GenerationRequest? = null
+    private var pendingRequest: GenerationRequest? = null
+    var isInFlight: Boolean = false
+        private set
+
+    val active: GenerationRequest? get() = activeRequest
+    val pending: GenerationRequest? get() = pendingRequest
+    val requested: GenerationRequest? get() = pendingRequest ?: activeRequest
+
+    fun enqueue(request: GenerationRequest): GenerationRequest? {
+        if (isInFlight) {
+            pendingRequest = request
+            return null
+        }
+        activeRequest = request
+        isInFlight = true
+        return request
+    }
+
+    fun beginExternal() {
+        activeRequest = null
+        pendingRequest = null
+        isInFlight = true
+    }
+
+    fun complete(actual: GenerationRequest?, failed: Boolean): GenerationRequest? {
+        if (!isInFlight) return null
+        if (activeRequest != null && !failed && activeRequest != actual) return null
+
+        activeRequest = null
+        isInFlight = false
+        if (pendingRequest == actual) pendingRequest = null
+        val next = pendingRequest
+        pendingRequest = null
+        if (next != null) {
+            activeRequest = next
+            isInFlight = true
+        }
+        return next
+    }
+
+    fun reset() {
+        activeRequest = null
+        pendingRequest = null
+        isInFlight = false
+    }
+}
+
 /** Compose 只发送事件；关卡列表唯一来自同步核心的完整状态快照。 */
 class MazeViewModel : ViewModel() {
     var editor by mutableStateOf(EditorUiState()); private set
     var device by mutableStateOf(DeviceUiState()); private set
     var notice by mutableStateOf<String?>(null); private set
     private var dispatch: ((JSONObject) -> Unit)? = null
+    private val generationQueue = GenerationQueue()
     fun attach(sender: (JSONObject) -> Unit) {
         dispatch = sender
+        generationQueue.reset()
         val previous = editor
         send("resume", "unknown" to device.unknown)
-        generate(previous.cols, previous.rows, previous.seed ?: randomSeed())
+        generate(previous.cols, previous.rows, previous.seed ?: randomSeed(), previous.profile)
     }
     fun detach() {
         dispatch = null
+        generationQueue.reset()
         device = DeviceUiState(unknown = device.unknown || device.busy,
             message = if (device.busy || device.unknown) "无法确认操作结果，请重新连接并刷新关卡列表。" else "")
     }
@@ -52,21 +107,21 @@ class MazeViewModel : ViewModel() {
     fun randomSeed(): Long = Random.nextLong(0, 4294967296L)
     fun generate(cols: Int = editor.cols, rows: Int = editor.rows, seed: Long = randomSeed(), profile: String = editor.profile) {
         if (dispatch == null) return
-        editor = editor.copy(isGenerating = true, error = null, imported = false)
-        send("generate", "profile" to profile, "cols" to cols, "rows" to rows, "seed" to seed)
+        enqueueGeneration(GenerationRequest(cols, rows, seed, profile))
     }
     fun preset(value: String) { val size = profilePresets(editor.profile).getValue(value); generate(size.first, size.second, editor.seed ?: randomSeed()) }
     fun incrementSeed() = generate(seed = ((editor.seed ?: 0L) + 1L) and 0xffffffffL)
     fun importSpec(text: String) {
-        if (dispatch == null) return
+        if (dispatch == null || generationQueue.isInFlight) return
+        generationQueue.beginExternal()
         editor = editor.copy(isGenerating = true, error = null, imported = false)
         send("import", "profile" to editor.profile, "text" to text)
     }
     fun selectProfile(profile: String) {
-        if (profile == editor.profile || editor.isGenerating) return
-        val size = profilePresets(profile)[editor.preset] ?: profilePresets(profile).getValue("normal")
-        // 生成成功后整体接收新 Profile、尺寸和迷宫，避免旧快照令动画反向。
-        generate(size.first, size.second, editor.seed ?: randomSeed(), profile)
+        if (dispatch == null || profile == editor.profile) return
+        val preset = editor.preset.takeIf { it in profilePresets(profile) } ?: "normal"
+        val size = profilePresets(profile).getValue(preset)
+        enqueueGeneration(GenerationRequest(size.first, size.second, editor.seed ?: randomSeed(), profile))
     }
     fun scan() = send("scan")
     fun connect(node: WearDevice) = send("connect", "id" to node.id, "name" to node.name)
@@ -80,10 +135,33 @@ class MazeViewModel : ViewModel() {
         args.forEach { command.put(it.first, it.second) }
         dispatch?.invoke(command)
     }
+    private fun enqueueGeneration(request: GenerationRequest) {
+        applyRequestedGeneration(request)
+        generationQueue.enqueue(request)?.let(::startGeneration)
+    }
+    private fun applyRequestedGeneration(request: GenerationRequest) {
+        val preset = presetFor(request.cols, request.rows, request.profile)
+        editor = editor.copy(profile = request.profile, cols = request.cols, rows = request.rows, seed = request.seed,
+            preset = preset, isGenerating = true, error = null, imported = false)
+    }
+    private fun startGeneration(request: GenerationRequest) {
+        if (dispatch == null) return
+        applyRequestedGeneration(request)
+        send("generate", "profile" to request.profile, "cols" to request.cols, "rows" to request.rows, "seed" to request.seed)
+    }
     fun receive(text: String) {
         runCatching {
             val root = JSONObject(text)
             val e = root.getJSONObject("editor")
+            val runtimeGenerating = e.optBoolean("generating")
+            val runtimeProfile = e.optString("profile", "band")
+            val runtimeCols = e.optInt("cols", 8)
+            val runtimeRows = e.optInt("rows", 15)
+            val runtimeSeed = if (e.isNull("seed")) null else e.getLong("seed")
+            val actualRequest = runtimeSeed?.let { GenerationRequest(runtimeCols, runtimeRows, it, runtimeProfile) }
+            val nextRequest = if (!runtimeGenerating && generationQueue.isInFlight) {
+                generationQueue.complete(actualRequest, e.nullableString("error") != null)
+            } else null
             val m = e.optJSONObject("maze")
             val maze = m?.let {
                 val render = it.getJSONObject("render")
@@ -91,9 +169,18 @@ class MazeViewModel : ViewModel() {
                     it.getInt("start"), it.getInt("goal"), render.getJSONArray("h").ints(), render.getJSONArray("v").ints(),
                     e.optJSONArray("path").ints(), e.optInt("shortestPath"), e.optInt("runs"), e.optInt("bytes"), e.optString("crc"), it.getString("profile"))
             }
-            editor = EditorUiState(e.getString("preset"), e.getInt("cols"), e.getInt("rows"),
-                if (e.isNull("seed")) null else e.getLong("seed"), maze, e.optBoolean("generating"),
-                e.nullableString("error"), e.nullableString("detail"), e.optBoolean("imported"), e.optString("profile", "band"), editor.deviceVariant)
+            val requested = generationQueue.requested
+            editor = EditorUiState(
+                preset = requested?.let { presetFor(it.cols, it.rows, it.profile) } ?: e.getString("preset"),
+                cols = requested?.cols ?: runtimeCols,
+                rows = requested?.rows ?: runtimeRows,
+                seed = requested?.seed ?: runtimeSeed,
+                maze = maze,
+                isGenerating = runtimeGenerating || generationQueue.isInFlight,
+                error = e.nullableString("error"), detail = e.nullableString("detail"),
+                imported = e.optBoolean("imported"), profile = requested?.profile ?: runtimeProfile,
+                deviceVariant = editor.deviceVariant
+            )
             val d = root.getJSONObject("device")
             val levels = d.optJSONArray("levels")?.let { array -> List(array.length()) { i ->
                 val item = array.getJSONObject(i)
@@ -125,12 +212,14 @@ class MazeViewModel : ViewModel() {
                 editor = editor.copy(deviceVariant = variant)
                 variant?.let { selectProfile(it.profile) }
             }
+            if (!runtimeGenerating) nextRequest?.let(::startGeneration)
         }.onFailure { notice = "无法读取应用状态，请重新打开应用。" }
     }
     companion object {
         val presets = linkedMapOf("easy" to (7 to 13), "normal" to (8 to 15), "hard" to (9 to 17), "expert" to (10 to 19))
         fun profilePresets(profile: String) = if (profile == "pro") linkedMapOf("easy" to (10 to 9), "normal" to (12 to 10), "hard" to (14 to 12), "expert" to (16 to 13)) else presets
         fun label(preset: String) = mapOf("easy" to "简单", "normal" to "正常", "hard" to "困难", "expert" to "专家")[preset] ?: "自定义"
+        private fun presetFor(cols: Int, rows: Int, profile: String) = profilePresets(profile).entries.firstOrNull { it.value == (cols to rows) }?.key ?: "custom"
     }
 }
 private fun JSONArray?.ints(): List<Int> = if (this == null) emptyList() else List(length()) { getInt(it) }
