@@ -26,19 +26,22 @@ import com.MarbleMaze.watch.ui.theme.BrutalColors
 fun DevicePreview(maze: MazeDefinition?, modifier: Modifier = Modifier, variant: DeviceVariant? = null,
                   seed: Long? = null, showPath: Boolean = false, profile: String = maze?.profile ?: "band") {
     val geometry = DeviceRenderProfile.resolve(profile, variant, maze?.cols ?: 8, maze?.rows ?: 15)
-    val transition = updateTransition(geometry, label = "目标设备几何")
-    val width by transition.animateFloat({ tween(280) }, label = "设备宽") { it.width }
-    val height by transition.animateFloat({ tween(280) }, label = "设备高") { it.height }
-    val radius by transition.animateFloat({ tween(280) }, label = "外框圆角") { it.radius }
-    val screenRadius by transition.animateFloat({ tween(280) }, label = "屏幕圆角") { it.screenRadius }
-    val left by transition.animateFloat({ tween(280) }, label = "迷宫左边距") { it.mazeLeft }
-    val top by transition.animateFloat({ tween(280) }, label = "迷宫上边距") { it.mazeTop }
-    val mazeWidth by transition.animateFloat({ tween(280) }, label = "迷宫宽") { it.mazeWidth }
-    val mazeHeight by transition.animateFloat({ tween(280) }, label = "迷宫高") { it.mazeHeight }
-    val visualScale by transition.animateFloat({ tween(280) }, label = "内部视觉比例") { it.referenceScale }
-    val titleY by transition.animateFloat({ tween(280) }, label = "标题位置") { it.titleY }
-    val metaY by transition.animateFloat({ tween(280) }, label = "信息位置") { it.metaY }
-    val footerY by transition.animateFloat({ tween(280) }, label = "底部位置") { it.footerY }
+    // 只在设备型号变化时过渡设备外形；难度变化直接更新迷宫区域，避免预览画布来回移动。
+    val transition = updateTransition(profile to variant, label = "目标设备几何")
+    fun deviceGeometry(target: Pair<String, DeviceVariant?>) =
+        DeviceRenderProfile.resolve(target.first, target.second, 8, 15)
+    val width by transition.animateFloat({ tween(280) }, label = "设备宽") { deviceGeometry(it).width }
+    val height by transition.animateFloat({ tween(280) }, label = "设备高") { deviceGeometry(it).height }
+    val radius by transition.animateFloat({ tween(280) }, label = "外框圆角") { deviceGeometry(it).radius }
+    val screenRadius by transition.animateFloat({ tween(280) }, label = "屏幕圆角") { deviceGeometry(it).screenRadius }
+    val left by transition.animateFloat({ tween(280) }, label = "迷宫左边距") { deviceGeometry(it).mazeLeft }
+    val mazeWidth by transition.animateFloat({ tween(280) }, label = "迷宫宽") { deviceGeometry(it).mazeWidth }
+    val visualScale by transition.animateFloat({ tween(280) }, label = "内部视觉比例") { deviceGeometry(it).referenceScale }
+    val titleY by transition.animateFloat({ tween(280) }, label = "标题位置") { deviceGeometry(it).titleY }
+    val metaY by transition.animateFloat({ tween(280) }, label = "信息位置") { deviceGeometry(it).metaY }
+    val footerY by transition.animateFloat({ tween(280) }, label = "底部位置") { deviceGeometry(it).footerY }
+    val top = geometry.mazeTop
+    val mazeHeight = geometry.mazeHeight
     val label = devicePreviewLabel(profile, variant)
     val paint = remember { Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER } }
     Canvas(modifier.semantics { contentDescription = "$label 设备预览，${maze?.cols ?: 0} 列 ${maze?.rows ?: 0} 行，绿色起点、红色终点" }) {
@@ -78,10 +81,10 @@ private fun DrawScope.drawMazeCanvas(maze: MazeDefinition, left: Float, top: Flo
         drawLine(BrutalColors.Yellow, point(a), point(b), unit * .20f, StrokeCap.Round)
     }
     maze.horizontal.chunked(3).forEach { (x, y, length) ->
-        drawLine(BrutalColors.Ink, Offset(left + x * ux, top + y * uy), Offset(left + (x + length) * ux, top + y * uy), 2.3f * visualScale)
+        drawLine(BrutalColors.Ink, Offset(left + x * ux, top + y * uy), Offset(left + (x + length) * ux, top + y * uy), 4.2f * visualScale)
     }
     maze.vertical.chunked(3).forEach { (x, y, length) ->
-        drawLine(BrutalColors.Ink, Offset(left + x * ux, top + y * uy), Offset(left + x * ux, top + (y + length) * uy), 2.3f * visualScale)
+        drawLine(BrutalColors.Ink, Offset(left + x * ux, top + y * uy), Offset(left + x * ux, top + (y + length) * uy), 4.2f * visualScale)
     }
     drawCircle(BrutalColors.Green, unit * .25f, point(maze.start))
     val goal = point(maze.goal)
