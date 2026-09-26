@@ -1,6 +1,8 @@
 package com.MarbleMaze.watch.ui.app
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,93 +12,124 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 @Composable
-fun EditorScreen(vm: MazeViewModel, preview: () -> Unit, seed: () -> Unit, parameters: () -> Unit, import: () -> Unit) {
+fun EditorScreen(vm: MazeViewModel, preview: () -> Unit, seed: () -> Unit, import: () -> Unit, export: () -> Unit, picker: () -> Unit, previewVariant: DeviceVariant?) {
     val state = vm.editor
+    val device = vm.device
+    // 快速生成不切换整组控件的外观；较慢任务才显示进度文案。
+    var showGenerating by remember { mutableStateOf(false) }
+    LaunchedEffect(state.isGenerating) {
+        showGenerating = false
+        if (state.isGenerating) { delay(150); showGenerating = true }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("创建关卡", style = MaterialTheme.typography.headlineSmall)
-        Surface(onClick = preview, enabled = state.maze != null && !state.isGenerating, shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) {
-            MazePreview(state.maze, Modifier.fillMaxWidth().height(330.dp))
-        }
-        if (state.isGenerating) LinearProgressIndicator(Modifier.fillMaxWidth())
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(MazeViewModel.label(state.preset), style = MaterialTheme.typography.titleMedium)
-            Text("${state.cols} × ${state.rows}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = seed, enabled = !state.isGenerating, modifier = Modifier.weight(1f)) {
-                Text(state.seed?.let { "Seed $it" } ?: "Seed 未包含在导入关卡中")
+        BrutalCard(Modifier.fillMaxWidth(), border = 3.dp, depth = 4.dp, radius = 14.dp) {
+            Column(Modifier.fillMaxWidth().clickable(enabled = state.maze != null && !state.isGenerating, onClickLabel = "查看完整预览", onClick = preview).padding(14.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    BrutalTag(devicePreviewLabel(state.profile, previewVariant))
+                    Text(MazeViewModel.label(state.preset), style = MaterialTheme.typography.labelLarge)
+                }
+                DevicePreview(state.maze, Modifier.fillMaxWidth().height(360.dp), previewVariant, state.seed, profile = state.profile)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${state.cols} × ${state.rows}", fontWeight = FontWeight.ExtraBold)
+                    Text("SEED ${state.seed}", style = MaterialTheme.typography.labelLarge)
+                }
             }
-            TextButton(onClick = vm::incrementSeed, enabled = !state.isGenerating) { Text("+1") }
         }
-        DifficultySelector(state.preset, !state.isGenerating, vm::preset)
-        Button(onClick = { vm.generate() }, enabled = !state.isGenerating,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("随机生成") }
+        Text("目标设备", style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("band", "pro").forEach { profile ->
+                BrutalSegment(profile.uppercase(), state.profile == profile, { vm.selectProfile(profile) }, Modifier.weight(1f), loading = state.isGenerating)
+            }
+        }
+        if (device.connected) Text("当前设备 · ${device.deviceName} · ${state.deviceVariant?.profile ?: "型号未识别"}", style = MaterialTheme.typography.bodySmall)
+        Text("难度", style = MaterialTheme.typography.titleMedium)
+        DifficultySelector(state.preset, loading = state.isGenerating, select = vm::preset)
+        Text("Seed", style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            BrutalOutlinedButton(onClick = seed, loading = state.isGenerating, modifier = Modifier.weight(1f)) { Text("${state.seed}", style = MaterialTheme.typography.titleMedium) }
+            BrutalOutlinedButton(onClick = vm::incrementSeed, loading = state.isGenerating, modifier = Modifier.width(68.dp)) { Text("+1") }
+        }
+        BrutalButton(onClick = { vm.generate() }, loading = state.isGenerating, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+            AppIcon("shuffle"); Spacer(Modifier.width(12.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("RANDOMIZE", style = MaterialTheme.typography.titleMedium)
+                Text(if (showGenerating) "正在生成…" else "随机生成")
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            BrutalOutlinedButton(onClick = import, loading = state.isGenerating, modifier = Modifier.weight(1f)) { AppIcon("download"); Text("导入参数") }
+            BrutalOutlinedButton(onClick = export, enabled = state.maze != null, loading = state.isGenerating, modifier = Modifier.weight(1f)) { AppIcon("upload"); Text("导出参数") }
+        }
         ErrorDetails(state.error, state.detail)
-        Column {
-            ActionRow("参数", !state.isGenerating, parameters)
-            HorizontalDivider()
-            ActionRow("导入关卡", !state.isGenerating, import)
+        val full = (device.levels?.size ?: 0) >= 12
+        BrutalButton(onClick = { if (!device.connected || device.unknown) picker() else vm.operation("add") },
+            enabled = if (!device.connected || device.unknown) !device.busy && !device.preparing else !full && device.canOperate && state.maze != null,
+            loading = state.isGenerating,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            AppIcon("add"); Spacer(Modifier.width(8.dp))
+            Text(when {
+                device.operationKind == "adding" -> "正在发送…"
+                device.preparing || device.operationKind == "connecting" -> "正在连接…"
+                !device.connected -> "连接设备后添加"
+                device.unknown -> "重新连接并核对关卡"
+                full -> "关卡已满 · 12 / 12"
+                device.levels == null -> "正在读取关卡…"
+                else -> "添加到 ${device.deviceName}"
+            }, Modifier.weight(1f), fontWeight = FontWeight.ExtraBold)
+            if (device.connected && !full && device.levels != null) {
+                Spacer(Modifier.width(8.dp)); Text("${device.levels.size}/12", fontWeight = FontWeight.ExtraBold)
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeneratorSheet(vm: MazeViewModel, seedOnly: Boolean, dismiss: () -> Unit) {
-    var cols by remember { mutableIntStateOf(vm.editor.cols) }
-    var rows by remember { mutableIntStateOf(vm.editor.rows) }
-    var seed by remember { mutableStateOf((vm.editor.seed ?: vm.randomSeed()).toString()) }
+fun SeedSheet(vm: MazeViewModel, dismiss: () -> Unit) {
+    var seed by remember { mutableStateOf(vm.editor.seed.toString()) }
     val parsed = seed.toLongOrNull()?.takeIf { it in 0..4294967295L }
-    val preset = MazeViewModel.presets.entries.find { it.value == cols to rows }?.key ?: "custom"
-    ModalBottomSheet(onDismissRequest = dismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(if (seedOnly) "设置 Seed" else "生成参数", style = MaterialTheme.typography.headlineSmall)
-            if (!seedOnly) {
-                Text("难度")
-                DifficultySelector(preset) { val value = MazeViewModel.presets.getValue(it); cols = value.first; rows = value.second }
-                Text("尺寸", style = MaterialTheme.typography.titleMedium)
-                Stepper("列", cols, 7..11) { cols = it }
-                Stepper("行", rows, 13..20) { rows = it }
-                if (preset == "custom") Text("自定义尺寸", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            OutlinedTextField(seed, { seed = it }, label = { Text("Seed") }, singleLine = true,
+    BrutalSheet(onDismissRequest = dismiss) {
+        Column(Modifier.fillMaxWidth().imePadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("设置 Seed", style = MaterialTheme.typography.headlineSmall)
+            BrutalTextField(seed, { seed = it }, label = { Text("Seed") }, singleLine = true,
                 isError = parsed == null, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-            Text("使用相同 Seed 和相同尺寸，可以重新生成相同迷宫。", style = MaterialTheme.typography.bodyMedium)
-            if (parsed == null) Text("请输入有效 Seed。", color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = { seed = vm.randomSeed().toString() }) { Text("随机 Seed") }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = dismiss) { Text("取消") }
-                Button(onClick = { parsed?.let { vm.generate(cols, rows, it); dismiss() } }, enabled = parsed != null) { Text("应用") }
-            }
+            Text("Seed 范围：0 ～ 4294967295")
+            BrutalButton(onClick = { parsed?.let { vm.generate(seed = it); dismiss() } }, enabled = parsed != null && !vm.editor.isGenerating, modifier = Modifier.fillMaxWidth()) { Text("应用") }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Stepper(label: String, value: Int, range: IntRange, change: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f))
-        OutlinedButton(onClick = { change(value - 1) }, enabled = value > range.first) { Text("−") }
-        Text(value.toString(), Modifier.padding(horizontal = 24.dp))
-        OutlinedButton(onClick = { change(value + 1) }, enabled = value < range.last) { Text("+") }
+fun ImportSpecSheet(vm: MazeViewModel, paste: () -> String, dismiss: () -> Unit) {
+    var text by remember { mutableStateOf("") }
+    var cols by remember { mutableStateOf(vm.editor.cols.toString()) }
+    var rows by remember { mutableStateOf(vm.editor.rows.toString()) }
+    var seed by remember { mutableStateOf(vm.editor.seed.toString()) }
+    fun update(value: String) {
+        text = value.take(128)
+        Regex("^(\\d+)x(\\d+)@(\\d+)$").matchEntire(text.trim())?.let {
+            cols = it.groupValues[1]; rows = it.groupValues[2]; seed = it.groupValues[3]
+        }
     }
-}
-
-@Composable
-fun ImportScreen(vm: MazeViewModel, paste: () -> String) {
-    var text by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Text("MazeDefinition JSON", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(text, { if (it.length <= 128 * 1024) text = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 260.dp),
-            placeholder = { Text("在此粘贴关卡 JSON") }, enabled = !vm.editor.isGenerating)
-        OutlinedButton(onClick = { val value = paste(); if (value.length <= 128 * 1024) text = value else vm.notify("关卡文件过大，无法导入。") }, modifier = Modifier.fillMaxWidth()) { Text("从剪贴板粘贴") }
-        Button(onClick = { vm.importMaze(text) }, enabled = text.isNotBlank() && !vm.editor.isGenerating, modifier = Modifier.fillMaxWidth()) { Text("校验并导入") }
-        if (vm.editor.isGenerating) LinearProgressIndicator(Modifier.fillMaxWidth())
-        if (vm.editor.error != null) Text("无法导入关卡", style = MaterialTheme.typography.titleMedium)
-        ErrorDetails(vm.editor.error, vm.editor.detail)
+    LaunchedEffect(vm.editor.imported) { if (vm.editor.imported) { vm.consumeImport(); dismiss() } }
+    BrutalSheet(onDismissRequest = dismiss) {
+        Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("导入关卡", style = MaterialTheme.typography.headlineSmall)
+            BrutalTextField(text, ::update, label = { Text("关卡参数") }, placeholder = { Text("12x10@38291627") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            TextButton(onClick = { update(paste()) }) { Text("从剪贴板粘贴") }
+            Text("或者")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                BrutalTextField(cols, { cols = it; text = "" }, label = { Text("列数") }, singleLine = true, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                BrutalTextField(rows, { rows = it; text = "" }, label = { Text("行数") }, singleLine = true, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            }
+            BrutalTextField(seed, { seed = it; text = "" }, label = { Text("Seed") }, singleLine = true, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            ErrorDetails(vm.editor.error, vm.editor.detail)
+            BrutalButton(onClick = { vm.importSpec(text.ifBlank { "${cols}x${rows}@${seed}" }) }, enabled = !vm.editor.isGenerating, modifier = Modifier.fillMaxWidth()) { Text("生成关卡") }
+        }
     }
 }

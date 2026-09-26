@@ -27,12 +27,12 @@ test('原生兼容层生成、Seed、预设与导入仍经过完整校验', () =
   assert.deepEqual(r.state.editor.maze, first);
   r.command({ action: 'generate', cols: 11, rows: 20, seed: 4294967295 });
   assert.equal(r.state.editor.preset, 'custom');
-  r.command({ action: 'import', text: JSON.stringify(first) });
-  assert.equal(r.state.editor.seed, null);
+  r.command({ action: 'import', text: '8x15@1' });
+  assert.equal(r.state.editor.seed, 1);
   assert.equal(r.state.editor.imported, true);
   assert.deepEqual(r.state.editor.maze, first);
-  r.command({ action: 'import', text: JSON.stringify({ ...first, cols: 6 }) });
-  assert.match(r.state.editor.error, /列数必须在/);
+  r.command({ action: 'import', text: '6x15@1' });
+  assert.match(r.state.editor.error, /列数超出/);
   assert.deepEqual(r.state.editor.maze, first);
 });
 test('添加只有 ACK 后完整列表核对成功才报告成功', () => {
@@ -40,9 +40,11 @@ test('添加只有 ACK 后完整列表核对成功才报告成功', () => {
   r.command({ action: 'add' });
   const level = r.sent.at(-1).level;
   assert.equal(r.state.device.busy, true);
+  assert.equal(r.state.device.operationKind, "adding");
   r.message({ tag: 'maze', type: 'ack', stat: 'add', index: 0, ok: true });
   assert.equal(r.sent.at(-1).stat, 'list');
   assert.equal(r.state.device.busy, true);
+  assert.equal(r.state.device.operationKind, "adding");
   assert.doesNotMatch(r.state.device.message, /成功/);
   r.message({ tag: 'maze', type: 'list', levels: [{ index: 0, id: level.id, name: '', cols: 8, rows: 15 }] });
   assert.match(r.state.device.message, /同步成功/);
@@ -77,4 +79,35 @@ test('恢复期间不丢失未知锁定，非法 JSON 不替换有效预览', ()
   assert.equal(r.state.device.unknown, true);
   assert.ok(r.state.editor.maze);
   assert.ok(r.state.editor.detail);
+});
+
+test('Pro 参数导入按当前 Profile 校验并保持完整 JSON 不可导入', () => {
+  const r = setup();
+  r.command({ action: 'import', profile: 'pro', text: '12x10@38291627' });
+  assert.equal(r.state.editor.profile, 'pro');
+  assert.equal(r.state.editor.preset, 'normal');
+  assert.equal(r.state.editor.seed, 38291627);
+  const maze = r.state.editor.maze;
+  r.command({ action: 'import', profile: 'pro', text: JSON.stringify(maze) });
+  assert.ok(r.state.editor.error);
+  assert.deepEqual(r.state.editor.maze, maze);
+});
+test('普通刷新与写操作回读使用不同 loading 状态', () => {
+  const r = setup(); r.connect();
+  r.command({ action: 'list' });
+  assert.equal(r.state.device.operationKind, 'refreshing');
+  r.message({ tag: 'maze', type: 'list', levels: [] });
+  assert.equal(r.state.device.operationKind, 'idle');
+});
+test('Pro 添加仍需 ACK 加匹配列表确认', () => {
+  const r = setup(); r.connect();
+  r.command({ action: 'generate', profile: 'pro', cols: 12, rows: 10, seed: 123 });
+  r.command({ action: 'add' });
+  const level = r.sent.at(-1).level;
+  assert.equal(level.profile, 'pro');
+  r.message({ tag: 'maze', type: 'ack', stat: 'add', index: 0, ok: true });
+  assert.equal(r.state.device.operationKind, 'adding');
+  r.message({ tag: 'maze', type: 'list', levels: [{ index: 0, id: level.id, name: '', cols: 12, rows: 10 }] });
+  assert.equal(r.state.device.operationKind, 'idle');
+  assert.match(r.state.device.message, /同步成功/);
 });

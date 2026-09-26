@@ -22,8 +22,10 @@
     if (!Array.isArray(levels) || levels.length > 12) return false;
     return levels.every((item, index) => item && item.index === index &&
       typeof item.id === 'string' && typeof item.name === 'string' &&
-      Number.isInteger(item.cols) && item.cols >= 7 && item.cols <= 11 &&
-      Number.isInteger(item.rows) && item.rows >= 13 && item.rows <= 20);
+      Object.keys(core.PROFILE_LIMITS).some(profile => {
+        try { core.validateSpec(item.cols, item.rows, profile); return true; }
+        catch (_) { return false; }
+      }));
   }
 
   function summary(level, index) {

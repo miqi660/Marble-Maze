@@ -1,5 +1,8 @@
 package com.MarbleMaze.watch.ui.app
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,128 +17,156 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.MarbleMaze.watch.ui.theme.BrutalColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceScreen(vm: MazeViewModel, create: () -> Unit, picker: () -> Unit) {
+fun DeviceScreen(vm: MazeViewModel, picker: () -> Unit) {
     val state = vm.device
     var menu by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<CustomLevel?>(null) }
     var confirmation by remember { mutableStateOf<String?>(null) }
-    PullToRefreshBox(isRefreshing = state.connected && state.busy, onRefresh = { if (state.canOperate) vm.operation("list") }, modifier = Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text("设备", style = MaterialTheme.typography.headlineSmall) }
+    PullToRefreshBox(isRefreshing = state.connected && state.operationKind == "refreshing", onRefresh = { if (state.canOperate) vm.operation("list") }, modifier = Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            item { Text("我的设备", style = MaterialTheme.typography.headlineSmall) }
             if (state.unknown) item {
-                Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(20.dp)) {
-                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                BrutalCard(color = BrutalColors.Red, border = 3.dp) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("无法确认同步结果", style = MaterialTheme.typography.titleMedium)
                         Text("设备可能已经完成保存，但手机没有成功读取最终状态。请重新连接设备并刷新关卡列表后再继续操作。")
-                        Button(onClick = picker, enabled = !state.busy && !state.preparing) { Text("重新连接") }
+                        BrutalOutlinedButton(onClick = picker, enabled = !state.busy && !state.preparing) { Text("重新连接") }
+                    }
+                }
+            }
+            item {
+                DeviceStatusCard(state) {
+                    if (state.connected) {
+                        Box {
+                            IconButton(onClick = { menu = true }, enabled = !state.busy) { AppIcon("more") }
+                            DropdownMenu(menu, { menu = false }, modifier = Modifier.border(2.dp, BrutalColors.Ink, RoundedCornerShape(8.dp)),
+                                shape = RoundedCornerShape(8.dp), tonalElevation = 0.dp, shadowElevation = 0.dp) {
+                                DropdownMenuItem(leadingIcon = { AppIcon("refresh") }, text = { Text("刷新关卡") }, onClick = { menu = false; vm.operation("list") })
+                                DropdownMenuItem(text = { Text("断开连接") }, onClick = { menu = false; vm.disconnect() })
+                                DropdownMenuItem(text = { Text("重新连接") }, onClick = { menu = false; vm.disconnect(); picker() })
+                            }
+                        }
                     }
                 }
             }
             if (!state.connected) {
                 item {
-                    Column(Modifier.fillMaxWidth().padding(vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                        Text("○", fontSize = 64.sp, color = MaterialTheme.colorScheme.outline)
-                        Text(if (state.preparing || state.busy) "正在连接设备…" else "尚未连接设备", style = MaterialTheme.typography.titleLarge)
-                        Text("连接后可以查看和管理\n设备中的自定义关卡。", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (!state.unknown) Button(onClick = picker, enabled = !state.preparing && !state.busy) { Text("连接设备") }
+                    Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text("连接后可以查看和管理设备中的自定义关卡。", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (!state.unknown) BrutalButton(onClick = picker, enabled = !state.preparing && !state.busy) { AppIcon("watch"); Spacer(Modifier.width(8.dp)); Text("连接设备") }
                     }
                 }
             } else {
                 item {
-                    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                        Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(state.deviceName, style = MaterialTheme.typography.titleMedium)
-                                Text("● 已连接", color = MaterialTheme.colorScheme.tertiary)
-                                Text(state.levels?.let { "${it.size} 个自定义关卡" } ?: "正在读取关卡…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Box {
-                                TextButton(onClick = { menu = true }, enabled = !state.busy) { Text("⋮", fontSize = 24.sp) }
-                                DropdownMenu(menu, { menu = false }) {
-                                    DropdownMenuItem(text = { Text("刷新关卡") }, onClick = { menu = false; vm.operation("list") })
-                                    DropdownMenuItem(text = { Text("断开连接") }, onClick = { menu = false; vm.disconnect() })
-                                    DropdownMenuItem(text = { Text("重新连接") }, onClick = { menu = false; vm.disconnect(); picker() })
-                                }
-                            }
-                        }
-                    }
-                }
-                item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("自定义关卡", style = MaterialTheme.typography.titleMedium)
-                        Text("${state.levels?.size ?: "—"} / 12", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        BrutalTag("${state.levels?.size ?: "—"} / 12", color = BrutalColors.Paper)
                     }
                 }
                 items(state.levels.orEmpty(), key = { it.index }) { level ->
-                    Column {
-                        Row(Modifier.fillMaxWidth().heightIn(min = 76.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("%02d".format(level.index + 1), Modifier.width(48.dp), fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(level.name.ifBlank { "自定义关卡" }, fontSize = 16.sp)
-                                Text("${level.cols} × ${level.rows}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            TextButton(onClick = { selected = level }, enabled = state.canOperate) { Text("⋮", fontSize = 24.sp) }
-                        }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    }
+                    LevelCard(level, state.canOperate) { selected = level }
                 }
-                if (state.levels?.isEmpty() == true) item { Text("暂无自定义关卡", Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                item {
-                    val full = (state.levels?.size ?: 0) >= 12
-                    OutlinedButton(onClick = { if (vm.editor.maze == null) create() else vm.operation("add") },
-                        enabled = !full && state.canOperate && !vm.editor.isGenerating, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                        Text(if (full) "关卡已满" else if (vm.editor.maze == null) "＋ 先创建一个关卡" else "＋ 添加当前关卡")
-                    }
+                if (state.levels?.isEmpty() == true) item {
+                    BrutalCard(depth = 0.dp) { Text("暂无自定义关卡", Modifier.fillMaxWidth().padding(24.dp)) }
                 }
             }
-            if (state.busy || state.preparing) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-            if (state.message.isNotBlank() && !state.unknown) item { Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            if (state.busy || state.preparing) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = BrutalColors.Ink, trackColor = BrutalColors.Yellow) }
+            if (state.message.isNotBlank() && !state.unknown) item { Text(state.message, style = MaterialTheme.typography.bodyMedium) }
         }
     }
     selected?.let { level ->
-        if (confirmation == null) ModalBottomSheet(onDismissRequest = { selected = null }) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (confirmation == null) BrutalSheet(onDismissRequest = { selected = null }) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                BrutalTag("%02d".format(level.index + 1))
                 Text("自定义关卡 %02d".format(level.index + 1), style = MaterialTheme.typography.titleLarge)
-                Text("${level.cols} × ${level.rows}")
+                Text("${level.cols} × ${level.rows}", style = MaterialTheme.typography.titleMedium)
                 ActionRow("使用当前关卡替换", vm.editor.maze != null && state.canOperate) { confirmation = "replace" }
-                TextButton(onClick = { confirmation = "remove" }, enabled = state.canOperate) { Text("删除关卡", color = MaterialTheme.colorScheme.error) }
+                BrutalButton(onClick = { confirmation = "remove" }, enabled = state.canOperate, color = BrutalColors.Red, border = 2.dp, depth = 2.dp) {
+                    AppIcon("delete"); Spacer(Modifier.width(8.dp)); Text("删除关卡")
+                }
                 TextButton(onClick = { selected = null }) { Text("取消") }
             }
         } else {
             val remove = confirmation == "remove"
-            AlertDialog(onDismissRequest = { confirmation = null; selected = null },
-                title = { Text("${if (remove) "删除" else "替换"}自定义 %02d？".format(level.index + 1)) },
-                text = { Text(if (remove) "删除后，后面的关卡编号会自动向前移动。" else
-                    "当前关卡\n${vm.editor.cols} × ${vm.editor.rows} · ${MazeViewModel.label(vm.editor.preset)}\n\n将替换：\n自定义 %02d\n${level.cols} × ${level.rows}".format(level.index + 1)) },
-                dismissButton = { TextButton(onClick = { confirmation = null; selected = null }) { Text("取消") } },
-                confirmButton = { TextButton(onClick = { vm.operation(confirmation!!, level.index); confirmation = null; selected = null }, enabled = state.canOperate) {
-                    Text(if (remove) "删除" else "替换", color = if (remove) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                } })
+            Dialog(onDismissRequest = { confirmation = null; selected = null }) {
+                BrutalCard(border = 3.dp, depth = 5.dp) {
+                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        Text("${if (remove) "删除" else "替换"}自定义 %02d？".format(level.index + 1), style = MaterialTheme.typography.titleLarge)
+                        Text(if (remove) "删除后，后面的关卡编号会自动向前移动。" else
+                            "当前关卡\n${vm.editor.cols} × ${vm.editor.rows} · ${MazeViewModel.label(vm.editor.preset)}\n\n将替换：\n自定义 %02d\n${level.cols} × ${level.rows}".format(level.index + 1))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            BrutalOutlinedButton(onClick = { confirmation = null; selected = null }, modifier = Modifier.weight(1f)) { Text("取消") }
+                            BrutalButton(onClick = { vm.operation(confirmation!!, level.index); confirmation = null; selected = null },
+                                enabled = state.canOperate, modifier = Modifier.weight(1f), color = if (remove) BrutalColors.Red else BrutalColors.Yellow) {
+                                Text(if (remove) "删除" else "替换")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeviceStatusCard(state: DeviceUiState, actions: @Composable () -> Unit) {
+    BrutalCard(Modifier.fillMaxWidth(), border = 3.dp, depth = 4.dp) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppIcon("watch"); Spacer(Modifier.width(10.dp))
+                Text(if (state.connected) state.deviceName else "等待连接设备", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                actions()
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                BrutalTag(when { state.unknown -> "结果未知"; state.preparing || state.operationKind == "connecting" -> "正在连接"; state.connected -> "已连接"; else -> "未连接" },
+                    color = when { state.unknown -> BrutalColors.Red; state.connected -> BrutalColors.Green; else -> BrutalColors.Muted })
+                Text("${state.levels?.size ?: "—"} / 12", style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+@Composable
+fun LevelCard(level: CustomLevel, enabled: Boolean, onMore: () -> Unit) {
+    Surface(shape = RoundedCornerShape(10.dp), border = BorderStroke(2.dp, BrutalColors.Ink), color = BrutalColors.Paper) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).heightIn(min = 86.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(64.dp).fillMaxHeight().background(BrutalColors.Yellow), contentAlignment = Alignment.Center) {
+                Text("%02d".format(level.index + 1), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+            }
+            VerticalDivider(Modifier.fillMaxHeight(), thickness = 2.dp, color = BrutalColors.Ink)
+            Column(Modifier.weight(1f).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(level.name.ifBlank { "自定义 %02d".format(level.index + 1) }, style = MaterialTheme.typography.titleMedium)
+                Text("${level.cols} × ${level.rows}", style = MaterialTheme.typography.labelLarge)
+            }
+            IconButton(onClick = onMore, enabled = enabled) { AppIcon("more") }
+        }
+    }
+}
+
 @Composable
 fun DevicePicker(vm: MazeViewModel, dismiss: () -> Unit) {
     val state = vm.device
-    ModalBottomSheet(onDismissRequest = dismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    BrutalSheet(onDismissRequest = dismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("连接设备", style = MaterialTheme.typography.headlineSmall)
-            Text("已连接到小米运动健康的设备", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("已连接到小米运动健康的设备", style = MaterialTheme.typography.bodyMedium)
             if (state.scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.devices.forEach { node ->
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(node.name, Modifier.weight(1f))
-                    Button(onClick = { vm.connect(node); dismiss() }, enabled = !state.scanning && !state.preparing && !state.busy) { Text("连接") }
+                BrutalCard(depth = 2.dp) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(node.name, style = MaterialTheme.typography.titleMedium)
+                        BrutalOutlinedButton(onClick = { vm.connect(node); dismiss() }, enabled = !state.scanning && !state.preparing && !state.busy) { Text("连接") }
+                    }
                 }
             }
             if (!state.scanning && state.devices.isEmpty()) Text("没有找到设备？请先在小米运动健康中连接设备。")
             if (state.message.isNotBlank()) Text(state.message, style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = vm::scan, enabled = !state.scanning && !state.preparing && !state.busy) { Text("重新查询") }
+            BrutalOutlinedButton(onClick = vm::scan, enabled = !state.scanning && !state.preparing && !state.busy) { AppIcon("refresh"); Spacer(Modifier.width(8.dp)); Text("重新查询") }
         }
     }
 }

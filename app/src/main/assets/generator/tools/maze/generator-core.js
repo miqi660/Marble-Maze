@@ -17,7 +17,7 @@
     [0, -1, WALL_W, WALL_E]
   ];
 
-  const GENERATOR_VERSION = 1;
+  const GENERATOR_VERSION = 2;
   const PROFILE = 'band';
   const ALGORITHM = 'dfs';
 
@@ -39,12 +39,34 @@
     maxRenderRuns: 256
   });
 
-  const PRESETS = Object.freeze({
+  const BAND_PRESETS = Object.freeze({
     easy: Object.freeze([7, 13]),
     normal: Object.freeze([8, 15]),
     hard: Object.freeze([9, 17]),
     expert: Object.freeze([10, 19])
   });
+
+  const PROFILE_LIMITS = Object.freeze({ band: BAND_MAZE_LIMITS,
+    pro: Object.freeze({ minCols: 7, maxCols: 16, minRows: 9, maxRows: 20,
+      maxCells: 220, maxRenderRuns: 256, minAspectRatio: .50, maxAspectRatio: 1.4 }) });
+  const PROFILES = Object.freeze({
+    band: Object.freeze({ presets: BAND_PRESETS, canvas: Object.freeze({ width: 192, height: 490 }) }),
+    pro: Object.freeze({ presets: Object.freeze({ easy: [10,9], normal: [12,10], hard: [14,12], expert: [16,13] }),
+      canvas: Object.freeze({ width: 336, height: 480, radius: 42, screenRadius: 40, mazeLeft: 16, mazeTop: 96, mazeW: 304, mazeH: 280 }) })
+  });
+  function parseSpec(text, profile = 'band') {
+    const match = /^(\d+)x(\d+)@(\d+)$/.exec(text.trim());
+    assert(match, 'IMPORT_SPEC_FORMAT');
+    const cols = Number(match[1]), rows = Number(match[2]), seed = Number(match[3]);
+    validateSpec(cols, rows, profile); validateSeed(seed);
+    return { profile, cols, rows, seed };
+  }
+  function fitCanvas(profile, targetWidth, targetHeight) {
+    assert(PROFILES[profile], 'PROFILE_NOT_ENABLED');
+    const { width, height } = PROFILES[profile].canvas;
+    const scale = Math.min(targetWidth / width, targetHeight / height);
+    return { scale, offsetX: (targetWidth - width * scale) / 2, offsetY: (targetHeight - height * scale) / 2 };
+  }
 
   function assert(condition, code) {
     if (!condition) {
@@ -75,8 +97,9 @@
     return seed >>> 0;
   }
 
-  function validateSpec(cols, rows) {
-    const L = BAND_MAZE_LIMITS;
+  function validateSpec(cols, rows, profile = 'band') {
+    const L = PROFILE_LIMITS[profile];
+    assert(L, 'PROFILE_NOT_ENABLED');
     assert(Number.isInteger(cols) && Number.isInteger(rows), 'SIZE_INTEGER');
     assert(cols >= L.minCols && cols <= L.maxCols, 'COLS_RANGE');
     assert(rows >= L.minRows && rows <= L.maxRows, 'ROWS_RANGE');
@@ -87,11 +110,11 @@
 
   function validateGenerationSpec(spec) {
     strictKeys(spec, ['generatorVersion', 'profile', 'cols', 'rows', 'algorithm', 'difficulty', 'seed'], 'GENERATION_SPEC_FIELDS');
-    assert(spec.generatorVersion === GENERATOR_VERSION, 'GENERATOR_VERSION');
-    assert(spec.profile === PROFILE, 'PROFILE_NOT_ENABLED');
+    assert(spec.generatorVersion === 1 || spec.generatorVersion === GENERATOR_VERSION, 'GENERATOR_VERSION');
+    assert(Object.prototype.hasOwnProperty.call(PROFILES, spec.profile), 'PROFILE_NOT_ENABLED');
     assert(spec.algorithm === ALGORITHM, 'ALGORITHM_NOT_SUPPORTED');
     assert(typeof spec.difficulty === 'string' && spec.difficulty.length > 0 && spec.difficulty.length <= 32, 'DIFFICULTY_LABEL');
-    validateSpec(spec.cols, spec.rows);
+    validateSpec(spec.cols, spec.rows, spec.profile);
     validateSeed(spec.seed);
     return true;
   }
@@ -111,8 +134,8 @@
     return row * cols + col;
   }
 
-  function generateCells(cols, rows, seed) {
-    validateSpec(cols, rows);
+  function generateCells(cols, rows, seed, profile = 'band') {
+    validateSpec(cols, rows, profile);
     seed = validateSeed(seed);
     const random = mulberry32(seed);
     const cells = new Uint8Array(cols * rows);
@@ -359,7 +382,7 @@
   }
 
   function mazeId(maze) {
-    return `m-b-${sha256Hex(canonicalPayload(maze)).slice(0, 12)}`;
+    return `m-${maze.profile === 'pro' ? 'p' : 'b'}-${sha256Hex(canonicalPayload(maze)).slice(0, 12)}`;
   }
 
   function crc32IsoHdlc(bytes) {
@@ -373,7 +396,8 @@
     return (crc ^ 0xFFFFFFFF) >>> 0;
   }
 
-  function performanceGate(cellCount, renderRunCount) {
+  function performanceGate(cellCount, renderRunCount, profile = 'band') {
+    const PERFORMANCE_BUDGET = { ...PROFILE_LIMITS[profile], recommendedCells: 190, recommendedRenderRuns: 200 };
     if (cellCount > PERFORMANCE_BUDGET.maxCells || renderRunCount > PERFORMANCE_BUDGET.maxRenderRuns) return 'REJECT';
     if (cellCount <= PERFORMANCE_BUDGET.recommendedCells && renderRunCount <= PERFORMANCE_BUDGET.recommendedRenderRuns) return 'GREEN';
     return 'YELLOW';
@@ -413,12 +437,12 @@
     };
   }
 
-  function validateRenderTriplets(render, cols, rows) {
+  function validateRenderTriplets(render, cols, rows, profile) {
     assert(Array.isArray(render.h) && Array.isArray(render.v), 'RENDER_ARRAY');
     assert(render.h.length % 3 === 0 && render.v.length % 3 === 0, 'RENDER_SHAPE');
 
     const runCount = render.h.length / 3 + render.v.length / 3;
-    assert(runCount <= BAND_MAZE_LIMITS.maxRenderRuns, 'RENDER_RUNS');
+    assert(runCount <= PROFILE_LIMITS[profile].maxRenderRuns, 'RENDER_RUNS');
 
     for (let i = 0; i < render.h.length; i += 3) {
       const x = render.h[i], y = render.h[i + 1], length = render.h[i + 2];
@@ -442,8 +466,8 @@
     strictKeys(maze.render, ['h', 'v'], 'RENDER_FIELDS');
 
     assert(maze.v === 1, 'VERSION');
-    assert(maze.profile === 'band', 'PROFILE_NOT_ENABLED');
-    validateSpec(maze.cols, maze.rows);
+    assert(Object.prototype.hasOwnProperty.call(PROFILES, maze.profile), 'PROFILE_NOT_ENABLED');
+    validateSpec(maze.cols, maze.rows, maze.profile);
 
     const cellCount = maze.cols * maze.rows;
     assert(typeof maze.cells === 'string' && maze.cells.length === cellCount && /^[0-9A-F]+$/.test(maze.cells), 'CELLS');
@@ -452,10 +476,10 @@
     assert(Math.floor(maze.start / maze.cols) === 0, 'START_ROW');
     assert(Math.floor(maze.goal / maze.cols) === maze.rows - 1, 'GOAL_ROW');
 
-    assert(/^m-b-[0-9a-f]{12}$/.test(maze.id), 'ID_FORMAT');
+    assert(/^m-[bp]-[0-9a-f]{12}$/.test(maze.id), 'ID_FORMAT');
     assert(maze.id === mazeId(maze), 'ID_HASH_MISMATCH');
 
-    const renderRunCount = validateRenderTriplets(maze.render, maze.cols, maze.rows);
+    const renderRunCount = validateRenderTriplets(maze.render, maze.cols, maze.rows, maze.profile);
     const cells = decodeCells(maze.cells);
     let openingEdges = 0;
 
@@ -489,7 +513,7 @@
     assert(JSON.stringify(compiled) === JSON.stringify(maze.render), 'RENDER_TOPOLOGY');
 
     const quality = analyzeQuality(cells, maze.cols, maze.rows, maze.start, maze.goal);
-    const performance = performanceGate(cellCount, renderRunCount);
+    const performance = performanceGate(cellCount, renderRunCount, maze.profile);
     assert(performance !== 'REJECT', 'PERFORMANCE_REJECT');
 
     return {
@@ -545,13 +569,32 @@
   function buildFromSpec(spec) {
     validateGenerationSpec(spec);
     const startTime = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
-    const cells = generateCells(spec.cols, spec.rows, spec.seed);
-    const startGoal = selectStartGoal(cells, spec.cols, spec.rows);
+    // v1 保留原拓扑；v2 最多四个候选，评分与 Profile 无关。
+    const baselineCells = generateCells(spec.cols, spec.rows, spec.seed, spec.profile);
+    const baselineRuns = compileRuns(baselineCells, spec.cols, spec.rows);
+    const runCeiling = (baselineRuns.h.length + baselineRuns.v.length) / 3;
+    let best = null;
+    const candidates = spec.generatorVersion === 1 ? 1 : 4;
+    for (let i = 0; i < candidates; i++) {
+      const candidateSeed = (spec.seed + Math.imul(i, 0x9E3779B9)) >>> 0;
+      const candidate = i === 0 ? baselineCells : generateCells(spec.cols, spec.rows, candidateSeed, spec.profile);
+      const endpoints = selectStartGoal(candidate, spec.cols, spec.rows);
+      const quality = analyzeQuality(candidate, spec.cols, spec.rows, endpoints.start, endpoints.goal);
+      const render = i === 0 ? baselineRuns : compileRuns(candidate, spec.cols, spec.rows);
+      const runs = (render.h.length + render.v.length) / 3;
+      if (runs > runCeiling) continue;
+      const count = spec.cols * spec.rows;
+      const score = quality.shortestPath * 4 + Math.min(quality.turns, count * .4) * 2 +
+        Math.min(quality.deadEnds, count * .12) * 3 + Math.min(quality.branches, count * .10) * 3 - runs * 2;
+      if (!best || score > best.score) best = { cells: candidate, endpoints, score };
+    }
+    const cells = best.cells;
+    const startGoal = best.endpoints;
 
     const maze = {
       v: 1,
       id: '',
-      profile: 'band',
+      profile: spec.profile,
       cols: spec.cols,
       rows: spec.rows,
       start: startGoal.start,
@@ -566,8 +609,8 @@
     const payload = payloadInfo(maze);
 
     const report = {
-      generatorVersion: GENERATOR_VERSION,
-      profile: PROFILE,
+      generatorVersion: spec.generatorVersion,
+      profile: spec.profile,
       algorithm: ALGORITHM,
       difficulty: spec.difficulty,
       seed: spec.seed >>> 0,
@@ -590,10 +633,10 @@
     return { maze, validation, report, payload };
   }
 
-  function build(cols, rows, seed, difficulty) {
+  function build(cols, rows, seed, difficulty, profile = 'band') {
     return buildFromSpec({
       generatorVersion: GENERATOR_VERSION,
-      profile: PROFILE,
+      profile,
       cols,
       rows,
       algorithm: ALGORITHM,
@@ -602,13 +645,16 @@
     });
   }
 
-  function buildPreset(name, seed) {
+  function buildPreset(name, seed, profile = 'band') {
+    assert(PROFILES[profile], 'PROFILE_NOT_ENABLED');
+    const PRESETS = PROFILES[profile].presets;
     assert(Object.prototype.hasOwnProperty.call(PRESETS, name), 'PRESET');
     const [cols, rows] = PRESETS[name];
-    return build(cols, rows, seed, name);
+    return build(cols, rows, seed, name, profile);
   }
 
   return Object.freeze({
+    PROFILES, PROFILE_LIMITS, parseSpec, fitCanvas,
     GENERATOR_VERSION,
     PROFILE,
     ALGORITHM,
@@ -618,7 +664,7 @@
     WALL_W,
     BAND_MAZE_LIMITS,
     PERFORMANCE_BUDGET,
-    PRESETS,
+    PRESETS: PROFILES.band.presets,
     validateSeed,
     validateSpec,
     validateGenerationSpec,

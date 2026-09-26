@@ -20,4 +20,10 @@ class NativeUiStateTest {
         assertEquals(listOf("简单", "正常", "困难", "专家"), MazeViewModel.presets.keys.map(MazeViewModel::label))
         assertEquals("自定义", MazeViewModel.label("custom"))
     }
+    @Test fun proPresetsAndDeviceProfilesAreIndependent() {
+        assertEquals(listOf(10 to 9, 12 to 10, 14 to 12, 16 to 13), MazeViewModel.profilePresets("pro").values.toList())
+        assertEquals("band", com.MarbleMaze.watch.ui.app.DeviceVariant.identify("Xiaomi Smart Band 10")?.profile)
+        assertEquals("pro", com.MarbleMaze.watch.ui.app.DeviceVariant.identify("Xiaomi Smart Band 9 Pro")?.profile)
+        assertNull(com.MarbleMaze.watch.ui.app.DeviceVariant.identify("未知设备"))
+    }
 }
