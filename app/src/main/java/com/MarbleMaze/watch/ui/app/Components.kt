@@ -8,6 +8,17 @@ import androidx.compose.ui.res.painterResource
 import com.MarbleMaze.watch.R
 import androidx.compose.ui.unit.dp
 
+
+/** 页面标题组：eyebrow / 大标题 / 副标题，替代传统 TopAppBar。 */
+@Composable
+fun PageHeader(eyebrow: String, title: String, subtitle: String, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title, style = MaterialTheme.typography.headlineSmall)
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 @Composable
 fun DifficultySelector(selected: String, enabled: Boolean = true, loading: Boolean = false, select: (String) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

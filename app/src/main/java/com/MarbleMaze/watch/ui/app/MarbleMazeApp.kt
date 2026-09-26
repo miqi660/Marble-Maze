@@ -27,8 +27,10 @@ fun MarbleMazeApp(vm: MazeViewModel, copy: (String) -> Unit, paste: () -> String
     BackHandler(page.isNotEmpty()) { page = "" }
     LaunchedEffect(vm.notice) { vm.notice?.let { snackbar.showSnackbar(it); vm.notify(null) } }
     Scaffold(topBar = {
-        TopAppBar(modifier = Modifier.border(2.dp, BrutalColors.Ink), colors = TopAppBarDefaults.topAppBarColors(containerColor = BrutalColors.Paper), title = { Text(when (page) { "preview" -> "预览"; "details" -> "关卡信息"; else -> "弹珠迷宫" }) },
-            navigationIcon = { if (page.isNotEmpty()) TextButton(onClick = { page = if (page == "details") "preview" else "" }) { AppIcon("back") } },
+        // 根页面标题已进入页面内容；只有二级页面保留 TopBar。
+        if (page.isNotEmpty()) TopAppBar(modifier = Modifier.border(2.dp, BrutalColors.Ink), colors = TopAppBarDefaults.topAppBarColors(containerColor = BrutalColors.Paper),
+            title = { Text(if (page == "preview") "预览" else "关卡信息") },
+            navigationIcon = { TextButton(onClick = { page = if (page == "details") "preview" else "" }) { AppIcon("back") } },
             actions = {
                 if (page == "preview") Box {
                     TextButton(onClick = { menu = true }) { AppIcon("more") }
@@ -41,11 +43,9 @@ fun MarbleMazeApp(vm: MazeViewModel, copy: (String) -> Unit, paste: () -> String
         if (page.isEmpty()) Surface(color = BrutalColors.Background) {
             Column(Modifier.navigationBarsPadding()) {
                 HorizontalDivider(thickness = 2.dp, color = BrutalColors.Ink)
-                Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    BrutalButton(onClick = { tab = 0 }, modifier = Modifier.weight(1f), color = if (tab == 0) BrutalColors.Yellow else BrutalColors.Paper,
-                        depth = if (tab == 0) 3.dp else 0.dp, border = 2.dp) { AppIcon("maze"); Spacer(Modifier.width(8.dp)); Text("创建") }
-                    BrutalButton(onClick = { tab = 1 }, modifier = Modifier.weight(1f), color = if (tab == 1) BrutalColors.Yellow else BrutalColors.Paper,
-                        depth = if (tab == 1) 3.dp else 0.dp, border = 2.dp) { AppIcon("watch"); Spacer(Modifier.width(8.dp)); Text("设备") }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BrutalNavigationItem("创建", "maze", tab == 0, { tab = 0 }, Modifier.weight(1f))
+                    BrutalNavigationItem("设备", "watch", tab == 1, { tab = 1 }, Modifier.weight(1f))
                 }
             }
         }
@@ -69,9 +69,9 @@ fun MarbleMazeApp(vm: MazeViewModel, copy: (String) -> Unit, paste: () -> String
                 "details" -> LevelDetails(vm.editor)
                 else -> if (tab == 0) EditorScreen(vm, { page = "preview" }, { sheet = "seed" }, { sheet = "importSpec" }, {
                     copy("${vm.editor.cols}x${vm.editor.rows}@${vm.editor.seed}")
-                    vm.notify("已复制关卡参数\n${vm.editor.cols} × ${vm.editor.rows} · Seed ${vm.editor.seed}")
+                    vm.notify("已复制\n${vm.editor.cols} × ${vm.editor.rows} · Seed ${vm.editor.seed}")
                 }, { sheet = "devices"; vm.scan() }, previewVariant)
-                    else DeviceScreen(vm, { sheet = "devices"; vm.scan() })
+                    else DeviceScreen(vm, { sheet = "devices"; vm.scan() }, onCreate = { tab = 0 })
             }
         }
     }
