@@ -1,73 +1,75 @@
 <template>
   <stack class="page container" @touchstart="onTouchStart" @touchend="onTouchEnd">
-    <stack class="page page-content {{ slideClass }}">
-    <!-- 页 1：Official -->
-    <stack if="{{ pageIndex === 0 }}" class="page">
-      <div class="abs" style="left: 57px; top: 48px">
-        <text class="eyebrow" style="width: 78px">LEVELS</text>
-      </div>
-      <text class="abs title title-shadow" style="left: 20px; top: 86px">选择关卡</text>
-      <text class="abs title" style="left: 16px; top: 82px">选择关卡</text>
-      <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
-      <div class="abs bar" style="left: 43px; top: 117px"></div>
-
-      <!-- 2 列网格 @top148，卡片 74×68，列距 8，行距 13 -->
-      <block for="{{ (i, item) in officialCards }}">
-        <div class="abs shadow" style="left: {{ item.left + 4 }}px; top: {{ item.top + 4 }}px; background-color: {{ item.locked ? '#8A847C' : item.selected ? '#FF5B8D' : '#111111' }}"></div>
-        <div class="abs card" style="left: {{ item.left }}px; top: {{ item.top }}px; background-color: {{ item.locked ? '#D9D4CC' : item.selected ? '#FFD323' : '#FFFFFF' }}" @click="playOfficial(i)">
-          <text class="card-label" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.locked ? '未解锁' : '关卡' }}</text>
-          <text class="card-no" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.no }}</text>
-          <div class="check" show="{{ item.cleared }}"><text class="check-txt">✓</text></div>
-          <div class="lock" show="{{ item.locked }}">
-            <div class="lock-shackle"></div>
-            <div class="lock-body"></div>
-            <div class="lock-keyhole"></div>
-            <div class="lock-keyhole-stem"></div>
-          </div>
+    <stack class="design-stage">
+      <stack class="page page-content {{ slideClass }}">
+      <!-- 页 1：Official -->
+      <stack if="{{ pageIndex === 0 }}" class="page">
+        <div class="abs" style="left: 57px; top: 48px">
+          <text class="eyebrow" style="width: 78px">LEVELS</text>
         </div>
-      </block>
+        <text class="abs title title-shadow" style="left: 20px; top: 86px">选择关卡</text>
+        <text class="abs title" style="left: 16px; top: 82px">选择关卡</text>
+        <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
+        <div class="abs bar" style="left: 43px; top: 117px"></div>
 
-      <!-- 进度卡 156×36 @top395 -->
-      <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
-      <div class="abs prog prog-between" style="left: 18px; top: 395px">
-        <text class="prog-label">已完成</text>
-        <text class="prog-count">{{ progress }} / {{ officialCount }}</text>
-      </div>
-    </stack>
-
-    <!-- 页 2/3：统一自定义关卡，每页 2 列 × 3 行。 -->
-    <stack if="{{ pageIndex > 0 }}" class="page">
-      <div class="abs" style="left: 55px; top: 48px">
-        <text class="eyebrow" style="width: 82px">CUSTOM</text>
-      </div>
-      <text class="abs title title-shadow" style="left: 20px; top: 86px">自定义</text>
-      <text class="abs title" style="left: 16px; top: 82px">自定义</text>
-      <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
-      <div class="abs bar" style="left: 43px; top: 117px"></div>
-      <block for="{{ (ci, card) in customCards }}">
-        <block if="{{ card.page === pageIndex && card.type === 'level' }}">
-          <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #111111"></div>
-          <div class="abs card" style="left: {{ card.left }}px; top: {{ card.top }}px; background-color: #FFFFFF" @click="playCustom(card.index)">
-            <text class="card-label">{{ card.diffLabel }}</text>
-            <text class="card-no">{{ card.no }}</text>
+        <!-- 2 列网格 @top148，卡片 74×68，列距 8，行距 13 -->
+        <block for="{{ (i, item) in officialCards }}">
+          <div class="abs shadow" style="left: {{ item.left + 4 }}px; top: {{ item.top + 4 }}px; background-color: {{ item.locked ? '#8A847C' : item.selected ? '#FF5B8D' : '#111111' }}"></div>
+          <div class="abs card" style="left: {{ item.left }}px; top: {{ item.top }}px; background-color: {{ item.locked ? '#D9D4CC' : item.selected ? '#FFD323' : '#FFFFFF' }}" @click="playOfficial(i)">
+            <text class="card-label" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.locked ? '未解锁' : '关卡' }}</text>
+            <text class="card-no" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.no }}</text>
+            <div class="check" show="{{ item.cleared }}"><text class="check-txt">✓</text></div>
+            <div class="lock" show="{{ item.locked }}">
+              <div class="lock-shackle"></div>
+              <div class="lock-body"></div>
+              <div class="lock-keyhole"></div>
+              <div class="lock-keyhole-stem"></div>
+            </div>
           </div>
         </block>
-        <block if="{{ card.page === pageIndex && card.type === 'add' }}">
-          <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #D9D4CC"></div>
-          <div class="abs card add-card" style="left: {{ card.left }}px; top: {{ card.top }}px">
-            <text class="empty-plus">+</text>
-          </div>
+
+        <!-- 进度卡 156×36 @top395 -->
+        <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
+        <div class="abs prog prog-between" style="left: 18px; top: 395px">
+          <text class="prog-label">已完成</text>
+          <text class="prog-count">{{ progress }} / {{ officialCount }}</text>
+        </div>
+      </stack>
+
+      <!-- 页 2/3：统一自定义关卡，每页 2 列 × 3 行。 -->
+      <stack if="{{ pageIndex > 0 }}" class="page">
+        <div class="abs" style="left: 55px; top: 48px">
+          <text class="eyebrow" style="width: 82px">CUSTOM</text>
+        </div>
+        <text class="abs title title-shadow" style="left: 20px; top: 86px">自定义</text>
+        <text class="abs title" style="left: 16px; top: 82px">自定义</text>
+        <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
+        <div class="abs bar" style="left: 43px; top: 117px"></div>
+        <block for="{{ (ci, card) in customCards }}">
+          <block if="{{ card.page === pageIndex && card.type === 'level' }}">
+            <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #111111"></div>
+            <div class="abs card" style="left: {{ card.left }}px; top: {{ card.top }}px; background-color: #FFFFFF" @click="playCustom(card.index)">
+              <text class="card-label">{{ card.diffLabel }}</text>
+              <text class="card-no">{{ card.no }}</text>
+            </div>
+          </block>
+          <block if="{{ card.page === pageIndex && card.type === 'add' }}">
+            <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #D9D4CC"></div>
+            <div class="abs card add-card" style="left: {{ card.left }}px; top: {{ card.top }}px">
+              <text class="empty-plus">+</text>
+            </div>
+          </block>
         </block>
-      </block>
-      <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
-      <div class="abs prog" style="left: 18px; top: 395px">
-        <text class="prog-txt">{{ pageIndex === 1 ? '01-06' : '07-12' }}</text>
+        <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
+        <div class="abs prog" style="left: 18px; top: 395px">
+          <text class="prog-txt">{{ pageIndex === 1 ? '01-06' : '07-12' }}</text>
+        </div>
+      </stack>
+      </stack>
+      <div class="abs pagination" style="left: 0px; top: 446px">
+        <div class="page-dot" for="{{ pageDots }}" style="background-color: {{ $item.active ? '#FF5B8D' : $item.index === 0 ? '#F3EFE7' : '#FFD323' }}; border-color: {{ $item.active ? '#FF5B8D' : '#111111' }}"></div>
       </div>
     </stack>
-    </stack>
-    <div class="abs pagination" style="left: 0px; top: 446px">
-      <div class="page-dot" for="{{ pageDots }}" style="background-color: {{ $item.active ? '#FF5B8D' : $item.index === 0 ? '#F3EFE7' : '#FFD323' }}; border-color: {{ $item.active ? '#FF5B8D' : '#111111' }}"></div>
-    </div>
   </stack>
 </template>
 
@@ -503,8 +505,27 @@ export default {
   border-radius: 5px;
 }
 .container {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+/* 内容保留 192×490 坐标；外层负责满屏背景和裁切。 */
+.design-stage {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 192px;
+  height: 490px;
+}
+/* Band 10：212×520，DPR=2；按高度等比适配，避免按宽度放大后超高。 */
+@media (width: 106) and (height: 260) {
+  .design-stage {
+    left: 3.733539px;
+    transform: scale(0.96110897);
+    transform-origin: 0px 0px;
+  }
 }
 </style>

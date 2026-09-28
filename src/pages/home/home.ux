@@ -4,40 +4,42 @@
 
 <template>
   <stack class="page container">
-    <!-- LEVEL 01 标签 66×24 @top50 -->
-    <div class="abs" style="left: 63px; top: 50px">
-      <eyebrow label="{{ levelLabel }}" width="66" height="24"></eyebrow>
-    </div>
+    <stack class="design-stage">
+      <!-- LEVEL 01 标签 66×24 @top50 -->
+      <div class="abs" style="left: 63px; top: 50px">
+        <eyebrow label="{{ levelLabel }}" width="66" height="24"></eyebrow>
+      </div>
 
-    <!-- “弹珠” 50px，黄硬阴影（下层黄色偏移 5px） -->
-    <text class="abs title title-shadow" style="left: 5px; top: 89px">弹珠</text>
-    <text class="abs title" style="left: 0px; top: 84px">弹珠</text>
+      <!-- “弹珠” 50px，黄硬阴影（下层黄色偏移 5px） -->
+      <text class="abs title title-shadow" style="left: 5px; top: 89px">弹珠</text>
+      <text class="abs title" style="left: 0px; top: 84px">弹珠</text>
 
-    <!-- “迷宫” 黄块黑边 118×54 @top145 -->
-    <div class="abs block" style="left: 37px; top: 145px">
-      <text class="block-txt">迷宫</text>
-    </div>
+      <!-- “迷宫” 黄块黑边 118×54 @top145 -->
+      <div class="abs block" style="left: 37px; top: 145px">
+        <text class="block-txt">迷宫</text>
+      </div>
 
-    <!-- 白色提示卡 112×50 粉阴影 @top214 -->
-    <div class="abs card-shadow" style="left: 44px; top: 218px"></div>
-    <div class="abs card" style="left: 40px; top: 214px">
-      <text class="card-txt">倾斜手环</text>
-      <text class="card-txt">滚球到终点</text>
-    </div>
+      <!-- 白色提示卡 112×50 粉阴影 @top214 -->
+      <div class="abs card-shadow" style="left: 44px; top: 218px"></div>
+      <div class="abs card" style="left: 40px; top: 214px">
+        <text class="card-txt">倾斜手环</text>
+        <text class="card-txt">滚球到终点</text>
+      </div>
 
-    <!-- “开始” 160×58 黄底黑阴影 @top286 -->
-    <div class="abs" style="left: 16px; top: 286px" @click="goLevels">
-      <btn-hard label="开始" width="160" height="58" bg="#FFD323" shadow="#111111" font-size="24"></btn-hard>
-    </div>
-    <!-- “设置” 144×44 白底粉阴影 @top356 -->
-    <div class="abs" style="left: 24px; top: 356px" @click="goSettings">
-      <btn-hard label="设置" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
-    </div>
+      <!-- “开始” 160×58 黄底黑阴影 @top286 -->
+      <div class="abs" style="left: 16px; top: 286px" @click="goLevels">
+        <btn-hard label="开始" width="160" height="58" bg="#FFD323" shadow="#111111" font-size="24"></btn-hard>
+      </div>
+      <!-- “设置” 144×44 白底粉阴影 @top356 -->
+      <div class="abs" style="left: 24px; top: 356px" @click="goSettings">
+        <btn-hard label="设置" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
+      </div>
 
-    <!-- 三色点 @top429，横线 @top451 -->
-    <div class="abs" style="left: 0px; top: 429px">
-      <dots gap="16"></dots>
-    </div>
+      <!-- 三色点 @top429，横线 @top451 -->
+      <div class="abs" style="left: 0px; top: 429px">
+        <dots gap="16"></dots>
+      </div>
+    </stack>
   </stack>
 </template>
 
@@ -119,8 +121,27 @@ export default {
   text-align: center;
 }
 .container {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+/* 内容保留 192×490 坐标；外层负责满屏背景和裁切。 */
+.design-stage {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 192px;
+  height: 490px;
+}
+/* Band 10：212×520，DPR=2；按高度等比适配，避免按宽度放大后超高。 */
+@media (width: 106) and (height: 260) {
+  .design-stage {
+    left: 3.733539px;
+    transform: scale(0.96110897);
+    transform-origin: 0px 0px;
+  }
 }
 </style>

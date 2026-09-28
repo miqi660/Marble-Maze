@@ -2,33 +2,35 @@
 
 <template>
   <stack class="page container">
-    <div class="abs" style="left: 0px; top: 60px">
-      <text class="title">设置</text>
-    </div>
-    <div class="abs bar" style="left: 43px; top: 106px"></div>
-
-    <!-- 震动开关卡 -->
-    <div class="abs card-shadow" style="left: 20px; top: 164px"></div>
-    <div class="abs card" style="left: 16px; top: 160px">
-      <div class="card-col">
-        <text class="card-title">按钮震动</text>
-        <text class="card-sub">{{ vibrateOn ? '已开启' : '已关闭' }}</text>
+    <stack class="design-stage">
+      <div class="abs" style="left: 0px; top: 60px">
+        <text class="title">设置</text>
       </div>
-      <switch class="sw" checked="{{ vibrateOn }}" @change="onToggle"></switch>
-    </div>
+      <div class="abs bar" style="left: 43px; top: 106px"></div>
 
-    <div class="abs brightness-shadow" style="left: 20px; top: 284px"></div>
-    <div class="abs brightness-card" style="left: 16px; top: 280px">
-      <text class="card-title">应用亮度 {{ brightnessPercent }}%</text>
-      <div class="brightness-controls">
-        <div class="brightness-button" @click="dim"><text class="brightness-symbol">−</text></div>
-        <div class="brightness-button" @click="brighten"><text class="brightness-symbol">+</text></div>
+      <!-- 震动开关卡 -->
+      <div class="abs card-shadow" style="left: 20px; top: 144px"></div>
+      <div class="abs card" style="left: 16px; top: 140px">
+        <div class="card-col">
+          <text class="card-title">按钮震动</text>
+          <text class="card-sub">{{ vibrateOn ? '已开启' : '已关闭' }}</text>
+        </div>
+        <switch class="sw" checked="{{ vibrateOn }}" @change="onToggle"></switch>
       </div>
-    </div>
 
-    <div class="abs" style="left: 24px; top: 404px" @click="goBack">
-      <btn-hard label="返回" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
-    </div>
+      <div class="abs brightness-shadow" style="left: 20px; top: 264px"></div>
+      <div class="abs brightness-card" style="left: 16px; top: 260px">
+        <text class="card-title">应用亮度 {{ brightnessPercent }}%</text>
+        <div class="brightness-controls">
+          <div class="brightness-button" @click="dim"><text class="brightness-symbol">−</text></div>
+          <div class="brightness-button" @click="brighten"><text class="brightness-symbol">+</text></div>
+        </div>
+      </div>
+
+      <div class="abs" style="left: 24px; top: 384px" @click="goBack">
+        <btn-hard label="返回" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
+      </div>
+    </stack>
   </stack>
 </template>
 
@@ -174,8 +176,27 @@ export default {
   color: #111111;
 }
 .container {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+/* 内容保留 192×490 坐标；外层负责满屏背景和裁切。 */
+.design-stage {
+  position: absolute;
+  left: 0px;
+  top: -25px;
+  width: 192px;
+  height: 490px;
+}
+/* Band 10：212×520，DPR=2；按高度等比适配，避免按宽度放大后超高。 */
+@media (width: 106) and (height: 260) {
+  .design-stage {
+    left: 3.733539px;
+    transform: scale(0.96110897);
+    transform-origin: 0px 0px;
+  }
 }
 </style>
