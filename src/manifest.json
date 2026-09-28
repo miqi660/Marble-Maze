@@ -18,7 +18,7 @@
   ],
   "permissions": [{ "origin": "hapjs.permission.DEVICE_INFO" }],
   "config": {
-    "logLevel": "log",
+    "logLevel": "error",
     "designWidth": 192
   },
   "router": {

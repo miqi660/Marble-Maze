@@ -12,12 +12,12 @@ class GameDisplay {
         brightness[method](Object.assign({}, args, {
           success(data) { resolve({ ok: true, data }) },
           fail(data, code) {
-            console.log('[maze] 屏幕接口 ' + method + ' 失败 ' + code)
+            console.error('[maze] 屏幕接口 ' + method + ' 失败 ' + code)
             resolve({ ok: false })
           }
         }))
       } catch (error) {
-        console.log('[maze] 屏幕接口 ' + method + ' 不可用: ' + error)
+        console.error('[maze] 屏幕接口 ' + method + ' 不可用: ' + error)
         resolve({ ok: false })
       }
     })

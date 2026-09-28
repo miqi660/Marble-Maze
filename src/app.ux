@@ -25,8 +25,9 @@ export default {
     const app = this
     // app.ux 的 data 默认值不作为 $def 顶层字段已初始化的保证。
     this.brightnessPercent = 50
+    this.destroyed = false
+    // 只创建缓存；进入关卡页或收到同步请求时才读取自定义关卡。
     this.slotStore = new SlotStore()
-    this.slotStore.init()
     this.brightnessRevision = 0
     this.brightnessWrites = Promise.resolve(true)
     this.brightnessReady = new Promise((resolve) => {
@@ -69,28 +70,51 @@ export default {
         fail() { resolve() }
       })
     })
+    this.onShow()
+  },
+
+  scheduleSync() {
+    if (this.destroyed || this.syncStarted || this.startupTimer != null) return
+    const session = {}
+    this.startupSession = session
+    // 归还事件循环，不让连接初始化占用 onCreate 的同步调用栈。
+    this.startupTimer = setTimeout(() => {
+      if (this.destroyed || this.startupSession !== session) return
+      this.startupTimer = null
+      this.startupSession = null
+      this.syncStarted = true
+      this.startSync()
+    }, 0)
+  },
+
+  startSync() {
     try {
       globalThis.conn = new Handshake()
       MazeSync.store = this.slotStore
       this.syncModule = globalThis.conn.register(MazeSync)
     } catch (e) {
-      console.log('[maze] interconnect 不可用: ' + e)
+      console.error('[maze] interconnect 不可用: ' + e)
       globalThis.conn = null
     }
-    this.onShow()
   },
 
   onShow() {
+    if (this.destroyed) return
+    this.scheduleSync()
     if (this.displaySession) return
     this.displaySession = gameDisplay.start(this.brightnessReady.then(() => Math.round(this.getBrightness() * 255 / 100)))
   },
 
   onHide() {
+    this.startupSession = null
+    if (this.startupTimer != null) clearTimeout(this.startupTimer)
+    this.startupTimer = null
     gameDisplay.stop(this.displaySession)
     this.displaySession = null
   },
 
   onDestroy() {
+    this.destroyed = true
     this.onHide()
     if (this.syncModule) this.syncModule.destroy()
     this.syncModule = null
@@ -114,9 +138,9 @@ export default {
       storage.set({
         key: 'settings_vibrate', value,
         success() { resolve(true) },
-        fail(data, code) { console.log('[maze] 震动设置保存失败 ' + code); resolve(false) }
+        fail(data, code) { console.error('[maze] 震动设置保存失败 ' + code); resolve(false) }
       })
-    })).catch((error) => { console.log('[maze] 震动设置保存失败: ' + error); return false })
+    })).catch((error) => { console.error('[maze] 震动设置保存失败: ' + error); return false })
     return this.vibrateWrites
   },
 
@@ -128,10 +152,10 @@ export default {
     const value = String(this.brightnessPercent)
     this.brightnessWrites = this.brightnessWrites.then(() => this.brightnessReady).then(() => new Promise((resolve) => {
       storage.set({ key: 'settings_brightness', value, success() { resolve(true) }, fail(data, code) {
-        console.log('[maze] 亮度设置保存失败 ' + code)
+        console.error('[maze] 亮度设置保存失败 ' + code)
         resolve(false)
       } })
-    })).catch((error) => { console.log('[maze] 亮度设置保存失败: ' + error); return false })
+    })).catch((error) => { console.error('[maze] 亮度设置保存失败: ' + error); return false })
     return this.brightnessWrites
   },
 

@@ -23,6 +23,15 @@ let renders = 0
 page.tick = () => ticks++
 page.renderFrame = () => renders++
 page.onShow()
+assert.equal(subscriptions.length, 0, '关卡未就绪不得订阅传感器')
+assert.equal(timers.length, 0, '关卡未就绪不得启动循环')
+page.onHide()
+page.ready = true
+page.startLoop()
+assert.equal(subscriptions.length, 0, '隐藏后准备完成不得启动循环')
+page.onShow()
+page.startLoop()
+assert.equal(subscriptions.length, 1, '重复启动不得重复订阅')
 const first = subscriptions[0]
 first({ x: 2, y: -2 })
 assert.equal(page.ax, 0.7)

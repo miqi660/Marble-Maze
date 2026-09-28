@@ -65,7 +65,7 @@ async function navigationTest() {
   complete.onBackPress()
   assert.deepStrictEqual(calls[1], ['replace', '/pages/levels'])
 
-  const store = { list: () => [], ready: Promise.resolve(true), subscribe: () => () => {} }
+  const store = { list: () => [], ready: Promise.resolve(true), init() { return this.ready }, subscribe: () => () => {} }
   const levels = readUx('src/pages/levels/levels.ux', {
     router, returnToPage, OFFICIAL: new Array(6).fill({ difficulty: 'easy' }), DIFFICULTY_LABEL: {},
     setTimeout, clearTimeout
@@ -109,7 +109,7 @@ async function navigationTest() {
   let unsubscribes = 0
   let clears = 0
   const timers = new Map()
-  let timerId = 0
+  let timerId = -1
   let sensorCallback
   const game = readUx('src/pages/game/game.ux', {
     Physics, returnToPage, gameDisplay: { start() {}, stop() {} },
@@ -118,10 +118,13 @@ async function navigationTest() {
     clearInterval: (id) => { assert.ok(timers.delete(id)); clears++ }
   })
   game.$app = { $def: { brightnessReady: Promise.resolve(), getBrightness: () => 50 } }
+  Object.assign(game, JSON.parse(JSON.stringify(game.private)))
   game.onShow()
   game.onShow()
-  assert.deepStrictEqual(Array.from(timers.values()).map(t => t.ms), [20, 40])
+  assert.equal(timers.size, 0, '准备完成前不得启动游戏循环')
+  assert.equal(subscribes, 0, '准备完成前不得订阅传感器')
   game.setupLevel(MazeCore.buildLevel(7, 13, 7, 'easy'))
+  assert.deepStrictEqual(Array.from(timers.values()).map(t => t.ms), [20, 40])
   const wallNodes = game.walls
   const collisionIndex = game.collisionIndex
   const activeTimers = Array.from(timers.keys())
@@ -141,6 +144,14 @@ async function navigationTest() {
   assert.equal(unsubscribes, 1)
   assert.equal(clears, 2)
   assert.equal(timers.size, 0)
+  // 即使运行标志已失效，仍须回收残留的计时器句柄。
+  game.timer = ++timerId
+  timers.set(game.timer, {})
+  game.renderTimer = ++timerId
+  timers.set(game.renderTimer, {})
+  game.stopLoop()
+  assert.equal(timers.size, 0)
+  assert.equal(unsubscribes, 1, '重复清理不重复退订传感器')
   console.log('✓ 返回目标存在/缺失、重复返回、单页条件渲染、卡片复用、Official 右滑、传感器幂等清理通过')
 }
 navigationTest().catch((error) => { console.error(error); process.exitCode = 1 })

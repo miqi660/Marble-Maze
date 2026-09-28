@@ -1,33 +1,20 @@
+<import name="maze-board" src="./components/maze-board.ux"></import>
+<import name="maze-ball" src="./components/ball.ux"></import>
+<import name="game-hud" src="./components/hud.ux"></import>
+<import name="game-loading" src="./components/loading.ux"></import>
 <import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
 <import name="dots" src="../../common/ui/dots.ux"></import>
 
 <template>
   <stack class="page">
-    <!-- HUD：左当前关卡标签（粉阴影），右计时（黄阴影） -->
-    <div class="abs hud-shadow" style="left: 11px; top: 61px; background-color: #ff5b8d; width: 80px"></div>
-    <div class="abs hud lv" style="left: 8px; top: 57px">
-      <text class="hud-text lv-text">{{ levelName }}</text>
-    </div>
-    <div class="abs hud-shadow" style="left: 102px; top: 61px; background-color: #ffd323; width: 86px"></div>
-    <div class="abs hud timer" style="left: 98px; top: 57px">
-      <text class="hud-text timer-text">{{ timeText }}</text>
-    </div>
-
-    <!-- 迷宫板：阴影 + 板体 -->
-    <div class="abs board-shadow" style="left: {{ shadowLeft }}px; top: 105px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
-    <div class="abs board" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
-
-    <!-- 板内区域：墙体静态；球以 25Hz 独立提交变换，物理保持 50Hz -->
+    <game-hud level-name="{{ levelName }}" time-text="{{ timeText }}"></game-hud>
+    <!-- 棋盘只接收静态几何数据；球体更新不经过棋盘组件。 -->
+    <maze-board board-left="{{ boardLeft }}" board-width="{{ boardWidth }}" board-height="{{ boardHeight }}"
+      goal-left="{{ goalLeft }}" goal-top="{{ goalTop }}" cell-px="{{ cellPx }}" walls="{{ walls }}"></maze-board>
     <stack class="abs inner" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px">
-      <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
-      <div class="abs wall" for="{{ walls }}" style="left: {{ $item.l }}px; top: {{ $item.t }}px; width: {{ $item.w }}px; height: {{ $item.h }}px"></div>
-      <div class="abs ball {{ ballClass }}" style="{{ ballStyle }}"></div>
+      <maze-ball size-class="{{ ballClass }}" position="{{ ballStyle }}"></maze-ball>
     </stack>
-
-    <div if="{{ loading }}" class="abs loading-shadow"></div>
-    <div if="{{ loading }}" class="abs loading-card">
-      <text class="loading-text">正在准备关卡</text>
-    </div>
+    <game-loading if="{{ loading }}"></game-loading>
 
     <div class="abs" style="left: 35px; top: 395px" @click="onRestart">
       <btn-hard label="重来" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18"></btn-hard>
@@ -69,7 +56,6 @@ export default {
     boardWidth: 0,
     boardHeight: 0,
     boardLeft: 96,
-    shadowLeft: 101,
     goalLeft: 0,
     goalTop: 0,
     walls: [],
@@ -132,12 +118,12 @@ export default {
         if (!current()) return
         this.prepareTimer = null
         try { work() } catch (error) {
-          console.log('[maze] 准备关卡失败: ' + error)
+          console.error('[maze] 准备关卡失败: ' + error)
           this.onBackPress()
         }
       }, 0)
     }
-    this.$app.$def.slotStore.ready.then((ready) => {
+    this.$app.$def.slotStore.init().then((ready) => {
       if (!current()) return
       if (ready === false) {
         this.onBackPress()
@@ -158,8 +144,8 @@ export default {
 
   stopPreparation() {
     this.prepareSession = null
-    if (this.prepareTimer) clearTimeout(this.prepareTimer)
-    if (this.loadingTimer) clearTimeout(this.loadingTimer)
+    if (this.prepareTimer != null) clearTimeout(this.prepareTimer)
+    if (this.loadingTimer != null) clearTimeout(this.loadingTimer)
     this.prepareTimer = null
     this.loadingTimer = null
     if (this.loading) this.loading = false
@@ -177,7 +163,6 @@ export default {
     this.boardWidth = cols * cellPx
     this.boardHeight = rows * cellPx
     this.boardLeft = (192 - this.boardWidth) / 2
-    this.shadowLeft = this.boardLeft + 5
     this.offX = 0
     this.offY = 0
     const thick = Math.min(4, Math.max(2, Math.round(cellPx * 0.2)))
@@ -234,6 +219,7 @@ export default {
     this.ready = true
     this.resetRuntime()
     this.stopPreparation()
+    this.startLoop()
   },
 
   /** 只重置球位置/速度/计时/finished，不触碰传感器订阅与定时器 */
@@ -259,12 +245,18 @@ export default {
     // Toolkit 2.x 的对象样式使用序列化变换值，避免重新解析整段 CSS。
     if (left !== this.ballLeft) this.ballLeft = left
     if (top !== this.ballTop) this.ballTop = top
-    this.ballStyle = { transform: JSON.stringify({ translateX: left + 'px', translateY: top + 'px' }) }
+    this.ballStyle.transform = '{"translateX":"' + left + 'px","translateY":"' + top + 'px"}'
   },
 
   onShow() {
-    if (this.disposed || this.finished || this.running) return
+    this.active = true
     this.startPreparation()
+    this.startLoop()
+  },
+
+  startLoop() {
+    if (!this.active || !this.ready) return
+    if (this.disposed || this.finished || this.running) return
     this.running = true
     // 每次恢复建立独立会话，隔离上次订阅/定时器的迟到回调。
     const session = {}
@@ -282,13 +274,13 @@ export default {
           self.ay += (ret.y - self.ay) * LPF
         },
         fail(data, code) {
-          console.log('[maze] 加速度订阅失败 ' + code)
+          console.error('[maze] 加速度订阅失败 ' + code)
         }
       })
     } catch (e) {
-      console.log('[maze] sensor 不可用: ' + e)
+      console.error('[maze] sensor 不可用: ' + e)
     }
-    if (this.timer) clearInterval(this.timer)
+    if (this.timer != null) clearInterval(this.timer)
     this.lastTick = Date.now()
     this.lastHudDraw = this.lastTick
     this.timer = setInterval(() => {
@@ -300,37 +292,40 @@ export default {
   },
 
   onHide() {
+    this.stopActivity()
+  },
+
+  stopActivity() {
+    this.active = false
     this.stopPreparation()
     this.stopLoop()
   },
 
   onDestroy() {
     this.disposed = true
-    this.stopPreparation()
-    this.stopLoop()
+    this.stopActivity()
   },
 
   onBackPress() {
     if (this.disposed) return true
     this.disposed = true
-    this.stopPreparation()
-    this.stopLoop()
+    this.stopActivity()
     returnToPage('/pages/levels')
     return true
   },
 
   stopLoop() {
-    if (!this.running) return
+    const wasRunning = this.running
     this.running = false
     this.loopSession = null
     try {
-      sensor.unsubscribeAccelerometer()
+      if (wasRunning) sensor.unsubscribeAccelerometer()
     } catch (e) {}
-    if (this.timer) {
+    if (this.timer != null) {
       clearInterval(this.timer)
       this.timer = null
     }
-    if (this.renderTimer) {
+    if (this.renderTimer != null) {
       clearInterval(this.renderTimer)
       this.renderTimer = null
     }
@@ -412,114 +407,5 @@ export default {
 }
 .abs {
   position: absolute;
-}
-.loading-shadow {
-  left: 22px;
-  top: 225px;
-  width: 156px;
-  height: 44px;
-  background-color: #ff5b8d;
-}
-.loading-card {
-  left: 18px;
-  top: 221px;
-  width: 156px;
-  height: 44px;
-  border: 3px solid #111111;
-  background-color: #ffd323;
-  justify-content: center;
-  align-items: center;
-}
-.loading-text {
-  font-size: 16px;
-  color: #111111;
-  font-weight: bold;
-}
-.hud-shadow {
-  height: 34px;
-}
-.hud {
-  height: 34px;
-  border: 3px solid #111111;
-  justify-content: center;
-  align-items: center;
-  padding: 0 8px;
-}
-.lv {
-  width: 80px;
-  background-color: #111111;
-  padding: 0 4px;
-}
-.timer {
-  width: 86px;
-  background-color: #ffffff;
-}
-.hud-text {
-  font-size: 18px;
-  font-weight: 900;
-  text-align: center;
-}
-.lv-text {
-  width: 66px;
-  height: 16px;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: bold;
-  lines: 1;
-  line-height: 16px;
-  text-overflow: clip;
-}
-.timer-text {
-  color: #111111;
-}
-.board-shadow {
-  background-color: #ff5b8d;
-}
-.board {
-  background-color: #ffffff;
-}
-.goal {
-  background-color: #FF5B8D;
-}
-.wall {
-  background-color: #111111;
-}
-.ball {
-  left: 0px;
-  top: 0px;
-  background-color: #ffd323;
-  border-style: solid;
-  border-color: #111111;
-}
-/* 当前关卡范围 7..11 列、13..20 行，对应球直径 8..12px。 */
-.ball-size-8 {
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
-  border-width: 2px;
-}
-.ball-size-9 {
-  width: 9px;
-  height: 9px;
-  border-radius: 5px;
-  border-width: 2px;
-}
-.ball-size-10 {
-  width: 10px;
-  height: 10px;
-  border-radius: 5px;
-  border-width: 3px;
-}
-.ball-size-11 {
-  width: 11px;
-  height: 11px;
-  border-radius: 6px;
-  border-width: 3px;
-}
-.ball-size-12 {
-  width: 12px;
-  height: 12px;
-  border-radius: 6px;
-  border-width: 3px;
 }
 </style>

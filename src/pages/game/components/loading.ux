@@ -1,0 +1,51 @@
+<template>
+  <stack class="loading-wrap">
+    <div class="abs loading-shadow"></div>
+    <div class="abs loading-card">
+      <text class="loading-text">正在准备关卡</text>
+    </div>
+  </stack>
+</template>
+
+<script>
+export default {
+  props: {
+
+  }
+}
+</script>
+
+<style>
+.loading-wrap {
+  position: absolute;
+  left: 18px;
+  top: 221px;
+  width: 160px;
+  height: 48px;
+}
+.abs {
+  position: absolute;
+}
+.loading-shadow {
+  left: 4px;
+  top: 4px;
+  width: 156px;
+  height: 44px;
+  background-color: #ff5b8d;
+}
+.loading-card {
+  left: 0px;
+  top: 0px;
+  width: 156px;
+  height: 44px;
+  border: 3px solid #111111;
+  background-color: #ffd323;
+  justify-content: center;
+  align-items: center;
+}
+.loading-text {
+  font-size: 16px;
+  color: #111111;
+  font-weight: bold;
+}
+</style>

@@ -162,7 +162,7 @@ async function gameTests() {
     const def = load('src/pages/game/game.ux', { ...timers, returnToPage: path => returns.push(path) })
     const game = Object.assign({}, def, def.private, {
       pack: 'custom', index: 0,
-      $app: { $def: { slotStore: { ready, getLevel() { reads++; timers.elapse(prepareCost); return level } } } }
+      $app: { $def: { slotStore: { ready, init() { return this.ready }, getLevel() { reads++; timers.elapse(prepareCost); return level } } } }
     })
     game.onInit()
     return { game, timers, returns, reads: () => reads }

@@ -103,13 +103,18 @@ async function cacheAndSync() {
     $app: { $def: { slotStore: store, progress: 1, progressReady: Promise.resolve() } }
   })
   page.onInit()
+  const cards = page.customCards
+  const dots = page.pageDots
   for (let i = 0; i < 20; i++) { page.onShow(); await drain(); page.onHide() }
+  assert.strictEqual(page.customCards, cards, '数据未变时返回页面不得替换卡片数组')
+  assert.strictEqual(page.pageDots, dots, '数据未变时不得重建分页点')
   assert.equal(reads, 13)
   assert.equal(prepares, 1, '关卡卡片不能生成渲染数据')
   assert.equal(store.listeners.length, 0)
   page.onShow()
   await store.append(OFFICIAL[5])
-  assert.equal(page.customCards[1].level.name, 'LV 6')
+  assert.equal(page.customCards[1].no, '02')
+  assert.ok(page.customCards.every(card => !Object.prototype.hasOwnProperty.call(card, 'level')), '卡片不持有关卡原始数据')
   page.onHide()
   sync.destroy()
   assert.equal(removed, 1)
@@ -123,6 +128,8 @@ async function cacheAndSync() {
     Handshake: class { register() { registrations++; return { destroy() { destructions++ } } } }
   })
   app.onCreate()
+  assert.equal(registrations, 0, '握手初始化不占用 onCreate 同步调用栈')
+  await new Promise(resolve => setTimeout(resolve, 0))
   assert.equal(registrations, 1)
   app.onDestroy()
   assert.equal(destructions, 1)
@@ -142,8 +149,12 @@ function gameBudget() {
   })
   let ballWrites = 0
   let positionWrites = 0
-  let positionValue
-  Object.defineProperty(page, 'ballStyle', { get: () => positionValue, set: (value) => { positionValue = value; positionWrites++ } })
+  let transformValue
+  const positionValue = {}
+  Object.defineProperty(positionValue, 'transform', { enumerable: true,
+    get: () => transformValue, set: value => { transformValue = value; positionWrites++ } })
+  Object.defineProperty(page, 'ballStyle', { get: () => positionValue,
+    set: () => assert.fail('移动时不得替换样式对象') })
   let ballDraws = 0
   const syncBall = page.syncBall
   page.syncBall = function () { ballDraws++; syncBall.call(this) }
@@ -177,11 +188,12 @@ function gameBudget() {
   assert.deepStrictEqual(Object.keys(positionValue), ['transform'])
   assert.deepStrictEqual(JSON.parse(positionValue.transform), { translateX: page.ballLeft + 'px', translateY: page.ballTop + 'px' })
   assert.ok(!gameSource.includes('ballPosition'), '动态绑定不再包含 left/top CSS')
-  assert.match(gameSource, /\.ball\s*\{\s*left: 0px;\s*top: 0px;/)
+  const ballSource = fs.readFileSync('src/pages/game/components/ball.ux', 'utf8')
+  assert.match(ballSource, /\.ball\s*\{\s*left: 0px;\s*top: 0px;/)
   for (let cols = 7; cols <= 11; cols++) {
     for (let rows = 13; rows <= 20; rows++) {
       const size = Math.round(0.56 * Math.min(184 / cols, 286 / rows))
-      const rule = gameSource.match(new RegExp('\\.ball-size-' + size + '\\s*\\{([^}]+)\\}'))
+      const rule = ballSource.match(new RegExp('\\.ball-size-' + size + '\\s*\\{([^}]+)\\}'))
       assert.ok(rule, '每种允许的关卡尺寸都应有静态球样式')
       assert.ok(rule[1].includes('width: ' + size + 'px'))
       assert.ok(rule[1].includes('height: ' + size + 'px'))

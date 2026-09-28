@@ -5,7 +5,7 @@ const vm = require('vm')
 function load(path, globals) {
   const source = fs.readFileSync(path, 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
-  const context = { module: { exports: {} }, Promise, console, ...globals }
+  const context = { module: { exports: {} }, Promise, console, setTimeout, clearTimeout, ...globals }
   vm.runInNewContext(source, context)
   const definition = context.module.exports
   return Object.assign({}, definition, definition.data, definition.private)

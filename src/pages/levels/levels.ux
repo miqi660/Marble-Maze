@@ -102,13 +102,17 @@ export default {
     this.leaving = false
     this.buildCards()
     this.refreshCustomLevels()
+    this.startWarmup()
     if (!this.unsubscribeSlots) {
-      this.unsubscribeSlots = this.$app.$def.slotStore.subscribe(() => this.refreshCustomLevels())
+      this.unsubscribeSlots = this.$app.$def.slotStore.subscribe(() => {
+        this.refreshCustomLevels()
+        this.startWarmup()
+      })
     }
     this.$app.$def.progressReady.then(() => {
       if (this.active) this.buildCards()
     })
-    this.$app.$def.slotStore.ready.then(() => {
+    this.$app.$def.slotStore.init().then(() => {
       if (this.active) this.refreshCustomLevels()
     })
   },
@@ -150,6 +154,10 @@ export default {
   refreshCustomLevels() {
     const store = this.$app.$def.slotStore
     const levels = store.list()
+    // 同一索引的布局和编号固定，只比较数量与实际展示的难度。
+    if (this.customCards.length && this.customCount === levels.length && levels.every((level, index) =>
+      this.customCards[index].diffLabel === (DIFFICULTY_LABEL[level.difficulty] || '自定义')
+    )) return
     const cards = []
     for (let index = 0; index < levels.length; index++) {
       const level = levels[index]
@@ -159,7 +167,6 @@ export default {
         index,
         no: index + 1 < 10 ? '0' + (index + 1) : String(index + 1),
         page: 1 + Math.floor(index / CustomLevels.CUSTOM_PAGE_SIZE),
-        level,
         diffLabel: DIFFICULTY_LABEL[level.difficulty] || '自定义',
         left: 18 + (localIndex % 2) * 82,
         top: 148 + Math.floor(localIndex / 2) * 81

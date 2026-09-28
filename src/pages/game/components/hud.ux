@@ -1,0 +1,71 @@
+<template>
+  <stack class="hud-wrap">
+    <div class="abs hud-shadow" style="left: 11px; top: 4px; background-color: #ff5b8d; width: 80px"></div>
+    <div class="abs hud lv" style="left: 8px; top: 0px">
+      <text class="hud-text lv-text">{{ levelName }}</text>
+    </div>
+    <div class="abs hud-shadow" style="left: 102px; top: 4px; background-color: #ffd323; width: 86px"></div>
+    <div class="abs hud timer" style="left: 98px; top: 0px">
+      <text class="hud-text timer-text">{{ timeText }}</text>
+    </div>
+  </stack>
+</template>
+
+<script>
+export default {
+  props: {
+    levelName: { default: 'LV 1' },
+    timeText: { default: '00.0' }
+  }
+}
+</script>
+
+<style>
+.hud-wrap {
+  position: absolute;
+  left: 0px;
+  top: 57px;
+  width: 192px;
+  height: 38px;
+}
+.abs {
+  position: absolute;
+}
+.hud-shadow {
+  height: 34px;
+}
+.hud {
+  height: 34px;
+  border: 3px solid #111111;
+  justify-content: center;
+  align-items: center;
+  padding: 0 8px;
+}
+.lv {
+  width: 80px;
+  background-color: #111111;
+  padding: 0 4px;
+}
+.timer {
+  width: 86px;
+  background-color: #ffffff;
+}
+.hud-text {
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+}
+.lv-text {
+  width: 66px;
+  height: 16px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+  lines: 1;
+  line-height: 16px;
+  text-overflow: clip;
+}
+.timer-text {
+  color: #111111;
+}
+</style>

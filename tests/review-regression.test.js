@@ -8,7 +8,7 @@ const Validate = require('../src/common/maze-validate.js')
 function readUx(path, globals) {
   const script = fs.readFileSync(path, 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
-  const context = Object.assign({ module: { exports: {} }, CustomLevels, console, Promise }, globals)
+  const context = Object.assign({ module: { exports: {} }, CustomLevels, console, Promise, setTimeout, clearTimeout }, globals)
   vm.runInNewContext(script, context)
   return context.module.exports
 }

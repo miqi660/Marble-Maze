@@ -166,7 +166,7 @@ async function storeAndProtocolTests() {
 
 function makeLevelsPage(count, routerCalls, globals) {
   const levels = Array.from({ length: count }, (_, index) => Object.assign({}, MazeValidate.stripCrc(OFFICIAL[index % 6]), { name: '自定义 ' + (index + 1) }))
-  const store = { list: () => levels, ready: Promise.resolve(true), subscribe: () => () => {} }
+  const store = { list: () => levels, ready: Promise.resolve(true), init() { return this.ready }, subscribe: () => () => {} }
   const definition = load('src/pages/levels/levels.ux', Object.assign({
     router: { push(route) { routerCalls.push(route) } },
     returnToPage(path) { routerCalls.push({ path }) }
@@ -216,14 +216,16 @@ function viewModelTests() {
       assert.strictEqual(page.customCards.filter((card) => card.page === 2 && card.type === 'add').length, 1)
     }
     if (count === 12) assert.strictEqual(page.customCards.some((card) => card.type === 'add'), false)
-    page.pageIndex = 1
+    page.switchPage(1)
+    page.stopSlide()
     page.refreshCustomLevels()
     assert.strictEqual(page.pageDots[1].active, true)
   }
 
   const calls = []
   const { page, levels } = makeLevelsPage(7, calls)
-  page.pageIndex = 2
+  page.switchPage(2)
+  page.stopSlide()
   page.refreshCustomLevels()
   assert.strictEqual(page.pageDots[2].active, true)
   levels.pop()
@@ -291,7 +293,7 @@ function slideTests() {
 async function gameAndCompleteTests() {
   const loaded = []
   const store = {
-    ready: Promise.resolve(true),
+    ready: Promise.resolve(true), init() { return this.ready },
     getLevel(index) { return index >= 0 && index < 12 ? { name: '第 ' + (index + 1) + ' 关' } : null }
   }
   const pending = new Map()
@@ -320,7 +322,7 @@ async function gameAndCompleteTests() {
     game.onBackPress()
   }
   assert.ok(loaded.includes('/pages/levels'), 'game 返回现有 levels 页面')
-  const missing = Object.assign({}, gameDefinition, { pack: 'custom', index: '11', $app: { $def: { slotStore: { ready: Promise.resolve(true), getLevel() { return null } } } } })
+  const missing = Object.assign({}, gameDefinition, { pack: 'custom', index: '11', $app: { $def: { slotStore: { ready: Promise.resolve(true), init() { return this.ready }, getLevel() { return null } } } } })
   missing.onInit()
   const beforeMissing = loaded.length
   await prepare()

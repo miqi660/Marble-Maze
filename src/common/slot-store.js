@@ -108,7 +108,7 @@ export default class SlotStore {
     const detail = typeof data === 'string' ? data : data && data.message ? data.message : ''
     const message = this.stage + ': ' + operation + ' ' + key + ' code=' + String(code) + (detail ? ' ' + detail.slice(0, 120) : '')
     if (!this.lastError) this.lastError = message
-    console.log('[maze] ' + message)
+    console.error('[maze] ' + message)
   }
 
   getValue(key) { return getValue(key, (op, k, data, code) => this.report(op, k, data, code)) }
@@ -273,7 +273,7 @@ export default class SlotStore {
 
   notify(change) {
     this.listeners.slice().forEach((listener) => {
-      try { listener(change, this.list()) } catch (e) { console.log('[maze] 自定义关卡刷新失败: ' + e) }
+      try { listener(change, this.list()) } catch (e) { console.error('[maze] 自定义关卡刷新失败: ' + e) }
     })
   }
 
