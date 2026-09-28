@@ -3,7 +3,7 @@
 <import name="dots" src="../../common/ui/dots.ux"></import>
 
 <template>
-  <stack class="page">
+  <stack class="page container">
     <!-- LEVEL 01 标签 66×24 @top50 -->
     <div class="abs" style="left: 63px; top: 50px">
       <eyebrow label="{{ levelLabel }}" width="66" height="24"></eyebrow>
@@ -117,5 +117,10 @@ export default {
   font-weight: 900;
   color: #66615b;
   text-align: center;
+}
+.container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 </style>

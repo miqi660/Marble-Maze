@@ -2,7 +2,7 @@
 <import name="eyebrow" src="../../common/ui/eyebrow.ux"></import>
 
 <template>
-  <stack class="page">
+  <stack class="page container">
     <div class="abs row" style="left: 0px; top: 50px">
       <eyebrow label="{{ levelName }}" width="66" height="24"></eyebrow>
     </div>
@@ -166,5 +166,10 @@ export default {
   font-size: 22px;
   color: #111111;
   font-weight: 900;
+}
+.container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 </style>

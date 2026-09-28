@@ -1,5 +1,5 @@
 <template>
-  <stack class="page" @touchstart="onTouchStart" @touchend="onTouchEnd">
+  <stack class="page container" @touchstart="onTouchStart" @touchend="onTouchEnd">
     <stack class="page page-content {{ slideClass }}">
     <!-- 页 1：Official -->
     <stack if="{{ pageIndex === 0 }}" class="page">
@@ -501,5 +501,10 @@ export default {
   margin-right: 3.5px;
   border: 2px solid #111111;
   border-radius: 5px;
+}
+.container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 </style>

@@ -6,7 +6,7 @@
 <import name="dots" src="../../common/ui/dots.ux"></import>
 
 <template>
-  <stack class="page">
+  <stack class="page container game-container">
     <game-hud level-name="{{ levelName }}" time-text="{{ timeText }}"></game-hud>
     <!-- 棋盘只接收静态几何数据；球体更新不经过棋盘组件。 -->
     <maze-board board-left="{{ boardLeft }}" board-width="{{ boardWidth }}" board-height="{{ boardHeight }}"
@@ -407,5 +407,18 @@ export default {
 }
 .abs {
   position: absolute;
+}
+.container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.game-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 </style>
