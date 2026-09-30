@@ -3,24 +3,16 @@
 <import name="game-hud" src="./components/hud.ux"></import>
 <import name="game-loading" src="./components/loading.ux"></import>
 <import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
-<import name="dots" src="../../common/ui/dots.ux"></import>
-
 <template>
   <stack class="page container game-container">
     <stack class="design-stage">
+      <div class="paper"></div>
       <game-hud level-name="{{ levelName }}" time-text="{{ timeText }}"></game-hud>
-      <!-- 棋盘只接收静态几何数据；球体更新不经过棋盘组件。 -->
-      <maze-board board-left="{{ boardLeft }}" board-width="{{ boardWidth }}" board-height="{{ boardHeight }}"
-        goal-left="{{ goalLeft }}" goal-top="{{ goalTop }}" cell-px="{{ cellPx }}" walls="{{ walls }}"></maze-board>
-      <stack class="abs inner" style="left: {{ boardLeft }}px; top: 100px; width: {{ boardWidth }}px; height: {{ boardHeight }}px">
-        <maze-ball size-class="{{ ballClass }}" position="{{ ballStyle }}"></maze-ball>
-      </stack>
+      <!-- 棋盘只接收初始化时生成的静态几何；球独立更新 transform。 -->
+      <maze-board board-left="{{ boardLeft }}" board-top="{{ boardTop }}" board-width="{{ boardWidth }}" board-height="{{ boardHeight }}" goal-left="{{ goalLeft }}" goal-top="{{ goalTop }}" cell-px="{{ cellPx }}" walls="{{ walls }}"></maze-board>
+      <stack class="abs inner" style="left: {{ boardLeft }}px; top: {{ boardTop }}px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"><maze-ball size="{{ ballSize }}" border-width="{{ ballBorderWidth }}" position="{{ ballStyle }}"></maze-ball></stack>
       <game-loading if="{{ loading }}"></game-loading>
-
-      <div class="abs" style="left: 35px; top: 395px" @click="onRestart">
-        <btn-hard label="重来" width="122" height="44" bg="#FFD323" shadow="#FF5B8D" font-size="18"></btn-hard>
-      </div>
-      <div class="abs" style="left: 0px; top: 446px"><dots gap="14"></dots></div>
+      <div class="abs" style="left: 66px; top: 397px" @click="onRestart"><btn-hard label="重来" width="204" height="53" shadow="#FF2E78" shadow-x="5" shadow-y="6" radius="4" font-size="26"></btn-hard></div>
     </stack>
   </stack>
 </template>
@@ -35,10 +27,11 @@ import { returnToPage } from '../../common/navigation.js'
 
 /** 加速度低通滤波系数 */
 const LPF = 0.35
-/** 宽度上限保留左右各 4px；高度优先避开现有重来按钮。 */
-const INNER_W = 184
-/** 按钮 top 395 - 迷宫 top 100 - 阴影 5 - 间隔 4。 */
-const INNER_H = 286
+/** Figma 4:599 迷宫本体区域；只改变网格到像素的投影。 */
+const INNER_W = 269
+const INNER_H = 290
+const AREA_LEFT = 32
+const AREA_TOP = 93
 
 function customLevelTitle(index) {
   const number = index + 1
@@ -57,12 +50,13 @@ export default {
     cellPx: 20,
     boardWidth: 0,
     boardHeight: 0,
-    boardLeft: 96,
+    boardLeft: 32,
+    boardTop: 93,
     goalLeft: 0,
     goalTop: 0,
     walls: [],
     ballStyle: { transform: '{"translateX":"0px","translateY":"0px"}' },
-    ballClass: 'ball-size-11',
+    ballBorderWidth: 3,
     ballSize: 11
   },
 
@@ -164,7 +158,8 @@ export default {
     this.cellPx = cellPx
     this.boardWidth = cols * cellPx
     this.boardHeight = rows * cellPx
-    this.boardLeft = (192 - this.boardWidth) / 2
+    this.boardLeft = AREA_LEFT + (INNER_W - this.boardWidth) / 2
+    this.boardTop = AREA_TOP + (INNER_H - this.boardHeight) / 2
     this.offX = 0
     this.offY = 0
     const thick = Math.min(4, Math.max(2, Math.round(cellPx * 0.2)))
@@ -216,7 +211,7 @@ export default {
 
     const ballSize = Math.round(0.56 * cellPx)
     this.ballSize = ballSize
-    this.ballClass = 'ball-size-' + ballSize
+    this.ballBorderWidth = Math.max(2, Math.min(3, Math.round(ballSize * 0.2)))
 
     this.ready = true
     this.resetRuntime()
@@ -402,44 +397,10 @@ export default {
 </script>
 
 <style>
-.page {
-  width: 192px;
-  height: 490px;
-  background-color: #f3efe7;
-}
-.abs {
-  position: absolute;
-}
-.container {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-.game-container {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-/* 内容保留 192×490 坐标；外层负责满屏背景和裁切。 */
-.design-stage {
-  position: absolute;
-  left: 0px;
-  top: 0px;
-  width: 192px;
-  height: 490px;
-}
-/* Band 10：212×520，DPR=2；按高度等比适配，避免按宽度放大后超高。 */
-@media (width: 106) and (height: 260) {
-  .design-stage {
-    left: 3.733539px;
-    transform: scale(0.96110897);
-    transform-origin: 0px 0px;
-  }
-}
+.page { width: 100%; height: 100%; background-color: #090909; }
+.container { position: absolute; left: 0px; top: 0px; overflow: hidden; }
+.design-stage { position: absolute; left: 0px; top: 0px; width: 336px; height: 480px; }
+.paper { position: absolute; left: 16px; top: 0px; width: 304px; height: 480px; background-color: #FAF8F3; }
+.abs { position: absolute; }
+.inner { overflow: hidden; }
 </style>

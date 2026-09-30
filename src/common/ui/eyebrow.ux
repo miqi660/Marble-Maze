@@ -1,7 +1,7 @@
 <!-- eyebrow：黑底白字小标签 -->
 <template>
   <div class="eyebrow" style="width: {{ width }}px; height: {{ height }}px">
-    <text class="txt">{{ label }}</text>
+    <text class="txt" style="font-size: {{ fontSize }}px">{{ label }}</text>
   </div>
 </template>
 
@@ -10,20 +10,22 @@ export default {
   props: {
     label: { default: '' },
     width: { default: 66 },
-    height: { default: 24 }
+    height: { default: 28 },
+    fontSize: { default: 14 }
   }
 }
 </script>
 
 <style>
 .eyebrow {
+  border-radius: 4px;
   background-color: #111111;
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
 }
 .txt {
-  color: #ffffff;
+  color: #FAF8F3;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.9px;

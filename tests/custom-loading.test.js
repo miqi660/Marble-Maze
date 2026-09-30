@@ -5,6 +5,8 @@ const CustomLevels = require('../src/common/custom-levels.js')
 const MazeValidate = require('../src/common/maze-validate.js')
 const Physics = require('../src/common/physics.js')
 const OFFICIAL = require('../src/common/official-levels.json')
+// 同步协议仍接受 Band 格式；使用固定夹具，避免借用 Pro Official。
+const BAND = require('./fixtures/band-levels.json')
 
 function load(path, globals) {
   let code = fs.readFileSync(path, 'utf8')
@@ -41,7 +43,7 @@ async function storageTests() {
   let requests = []
   let writes = 0
   const disk = { custom_storage_version: '2' }
-  for (let i = 0; i < 12; i++) disk[CustomLevels.storageKey(i)] = JSON.stringify({ ...MazeValidate.stripCrc(OFFICIAL[i % 6]), name: String(i) })
+  for (let i = 0; i < 12; i++) disk[CustomLevels.storageKey(i)] = JSON.stringify({ ...MazeValidate.stripCrc(BAND[i % 6]), name: String(i) })
   const Store = load('src/common/slot-store.js', { storage: {
     get(o) { if (o.key === 'custom_storage_version') o.success('2'); else requests.push(o) },
     set(o) { writes++; disk[o.key] = o.value; o.success() },
@@ -63,7 +65,7 @@ async function storageTests() {
   assert.strictEqual(store.getLevel(0), first)
   assert.strictEqual(Physics.getCollisionIndex(first), collision)
   assert.deepStrictEqual(collision, Physics.buildCollisionIndex(first))
-  assert.equal(await store.replace(0, MazeValidate.stripCrc(OFFICIAL[1])).then(r => r.ok), true)
+  assert.equal(await store.replace(0, MazeValidate.stripCrc(BAND[1])).then(r => r.ok), true)
   const replacement = store.getLevel(0)
   assert.notStrictEqual(replacement, first)
   assert.notStrictEqual(Physics.getCollisionIndex(replacement), collision, '替换不能复用旧碰撞缓存')
@@ -156,7 +158,7 @@ function warmupTests() {
 async function gameTests() {
   function make(ready, prepareCost = 0) {
     const timers = clock()
-    const level = MazeValidate.prepareLevel(MazeValidate.stripCrc(OFFICIAL[0]))
+    const level = MazeValidate.prepareLevel(MazeValidate.stripCrc(BAND[0]))
     let reads = 0
     const returns = []
     const def = load('src/pages/game/game.ux', { ...timers, returnToPage: path => returns.push(path) })

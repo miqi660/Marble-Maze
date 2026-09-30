@@ -19,7 +19,7 @@
   "permissions": [{ "origin": "hapjs.permission.DEVICE_INFO" }],
   "config": {
     "logLevel": "error",
-    "designWidth": 192
+    "designWidth": 336
   },
   "router": {
     "entry": "pages/home",

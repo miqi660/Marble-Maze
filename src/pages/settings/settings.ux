@@ -1,35 +1,26 @@
 <import name="btn-hard" src="../../common/ui/btn-hard.ux"></import>
-
 <template>
   <stack class="page container">
     <stack class="design-stage">
-      <div class="abs" style="left: 0px; top: 60px">
-        <text class="title">设置</text>
-      </div>
-      <div class="abs bar" style="left: 43px; top: 106px"></div>
-
-      <!-- 震动开关卡 -->
-      <div class="abs card-shadow" style="left: 20px; top: 144px"></div>
-      <div class="abs card" style="left: 16px; top: 140px">
-        <div class="card-col">
-          <text class="card-title">按钮震动</text>
-          <text class="card-sub">{{ vibrateOn ? '已开启' : '已关闭' }}</text>
-        </div>
-        <switch class="sw" checked="{{ vibrateOn }}" @change="onToggle"></switch>
-      </div>
-
-      <div class="abs brightness-shadow" style="left: 20px; top: 264px"></div>
-      <div class="abs brightness-card" style="left: 16px; top: 260px">
-        <text class="card-title">应用亮度 {{ brightnessPercent }}%</text>
-        <div class="brightness-controls">
-          <div class="brightness-button" @click="dim"><text class="brightness-symbol">−</text></div>
-          <div class="brightness-button" @click="brighten"><text class="brightness-symbol">+</text></div>
-        </div>
-      </div>
-
-      <div class="abs" style="left: 24px; top: 384px" @click="goBack">
-        <btn-hard label="返回" width="144" height="44" bg="#FFFFFF" shadow="#FF5B8D" font-size="18"></btn-hard>
-      </div>
+      <stack class="settings-paper">
+        <text class="abs title" style="left: 28px; top: 18px">设置</text>
+        <div class="abs card-shadow" style="left: 35px; top: 97px; height: 108px; background-color: #FF2E78"></div>
+        <stack class="abs card" style="left: 28px; top: 89px; height: 108px">
+          <text class="abs card-title" style="left: 18px; top: 25px">按钮震动</text>
+          <text class="abs card-sub" style="left: 18px; top: 55px">{{ vibrateOn ? '已开启' : '已关闭' }}</text>
+          <stack class="abs toggle" style="left: 182px; top: 35px; background-color: {{ vibrateOn ? '#FFD522' : '#A8A8A8' }}" @click="toggleVibrate">
+            <div class="abs thumb" style="left: {{ vibrateOn ? 38 : 4 }}px; top: 4px"></div>
+          </stack>
+        </stack>
+        <div class="abs card-shadow" style="left: 35px; top: 223px; height: 149px; background-color: #FFD522"></div>
+        <stack class="abs card" style="left: 28px; top: 215px; height: 149px">
+          <text class="abs brightness-title" style="left: 16px; top: 14px">应用亮度 {{ brightnessPercent }}%</text>
+          <div class="abs" style="left: 16px; top: 62px" @click="dim"><btn-hard label="−" width="100" height="74" font-size="36" shadow="#A8A8A8" shadow-x="3" shadow-y="3" feedback-on-click="{{ false }}"></btn-hard></div>
+          <div class="abs divider" style="left: 134px; top: 77px"></div>
+          <div class="abs" style="left: 156px; top: 62px" @click="brighten"><btn-hard label="+" width="100" height="74" font-size="36" shadow="#A8A8A8" shadow-x="3" shadow-y="3" feedback-on-click="{{ false }}"></btn-hard></div>
+        </stack>
+        <div class="abs" style="left: 28px; top: 392px" @click="goBack"><btn-hard label="返回" width="272" height="55" bg="#F4F5F5" shadow="#FFD522" shadow-x="7" shadow-y="8" font-size="26"></btn-hard></div>
+      </stack>
     </stack>
   </stack>
 </template>
@@ -75,6 +66,9 @@ export default {
     app.setBrightness(percent)
     app.feedback()
   },
+  toggleVibrate() {
+    this.onToggle({ checked: !this.vibrateOn })
+  },
   onToggle(e) {
     this.vibrateOn = !!e.checked
     if (this.vibrateOn === this.$app.$def.vibrateOn) return
@@ -88,115 +82,19 @@ export default {
 </script>
 
 <style>
-.page {
-  width: 192px;
-  height: 490px;
-  background-color: #f3efe7;
-}
-.abs {
-  position: absolute;
-}
-.title {
-  width: 192px;
-  font-size: 33px;
-  font-weight: 900;
-  color: #111111;
-  text-align: center;
-}
-.bar {
-  width: 106px;
-  height: 8px;
-  background-color: #ff5b8d;
-}
-.card-shadow {
-  width: 160px;
-  height: 100px;
-  background-color: #ff5b8d;
-}
-.card {
-  width: 160px;
-  height: 100px;
-  background-color: #ffffff;
-  border: 3px solid #111111;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-}
-.card-col {
-  flex-direction: column;
-}
-.card-title {
-  font-size: 18px;
-  font-weight: 900;
-  color: #111111;
-}
-.card-sub {
-  font-size: 12px;
-  color: #66615b;
-  margin-top: 4px;
-}
-.sw {
-  width: 44px;
-  height: 26px;
-  thumb-color: #111111;
-  track-color: #ffd323;
-}
-.brightness-shadow {
-  width: 160px;
-  height: 104px;
-  background-color: #ffd323;
-}
-.brightness-card {
-  width: 160px;
-  height: 104px;
-  border: 3px solid #111111;
-  background-color: #ffffff;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.brightness-controls {
-  width: 144px;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-.brightness-button {
-  width: 68px;
-  height: 56px;
-  justify-content: center;
-  align-items: center;
-  background-color: #ffd323;
-  border: 2px solid #111111;
-}
-.brightness-symbol {
-  font-size: 26px;
-  text-align: center;
-  color: #111111;
-}
-.container {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-/* 内容保留 192×490 坐标；外层负责满屏背景和裁切。 */
-.design-stage {
-  position: absolute;
-  left: 0px;
-  top: -25px;
-  width: 192px;
-  height: 490px;
-}
-/* Band 10：212×520，DPR=2；按高度等比适配，避免按宽度放大后超高。 */
-@media (width: 106) and (height: 260) {
-  .design-stage {
-    left: 3.733539px;
-    transform: scale(0.96110897);
-    transform-origin: 0px 0px;
-  }
-}
+.page { width: 100%; height: 100%; background-color: #090909; }
+.container { position: absolute; left: 0px; top: 0px; overflow: hidden; }
+.design-stage { position: absolute; left: 0px; top: 0px; width: 336px; height: 480px; }
+.paper { position: absolute; left: 16px; top: 0px; width: 304px; height: 480px; background-color: #FAF8F3; }
+.abs { position: absolute; }
+.settings-paper { width: 336px; height: 480px; background-color: #FAF8F3; }
+.title { width: 280px; height: 54px; font-size: 32px; font-weight: 900; color: #111111; text-align: center; }
+.card-shadow, .card { width: 272px; }
+.card { border: 3px solid #111111; background-color: #F4F5F5; }
+.card-title { font-size: 20px; font-weight: 900; color: #111111; }
+.card-sub { font-size: 16px; font-weight: bold; color: #5E5E5E; }
+.toggle { width: 72px; height: 38px; border-radius: 19px; }
+.thumb { width: 30px; height: 30px; border-radius: 15px; background-color: #090909; }
+.brightness-title { width: 240px; height: 28px; font-size: 20px; font-weight: 900; color: #111111; text-align: center; }
+.divider { width: 3px; height: 44px; background-color: #111111; }
 </style>

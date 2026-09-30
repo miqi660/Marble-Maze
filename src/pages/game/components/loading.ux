@@ -18,33 +18,33 @@ export default {
 <style>
 .loading-wrap {
   position: absolute;
-  left: 18px;
-  top: 221px;
-  width: 160px;
-  height: 48px;
+  left: 48px;
+  top: 207px;
+  width: 247px;
+  height: 68px;
 }
 .abs {
   position: absolute;
 }
 .loading-shadow {
-  left: 4px;
-  top: 4px;
-  width: 156px;
-  height: 44px;
-  background-color: #ff5b8d;
+  left: 7px;
+  top: 8px;
+  width: 240px;
+  height: 60px;
+  background-color: #FF2E78;
 }
 .loading-card {
   left: 0px;
   top: 0px;
-  width: 156px;
-  height: 44px;
+  width: 240px;
+  height: 60px;
   border: 3px solid #111111;
-  background-color: #ffd323;
+  background-color: #FFD522;
   justify-content: center;
   align-items: center;
 }
 .loading-text {
-  font-size: 16px;
+  font-size: 22px;
   color: #111111;
   font-weight: bold;
 }

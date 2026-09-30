@@ -1,6 +1,6 @@
 <template>
-  <stack class="board-wrap" style="left: {{ boardLeft }}px; width: {{ boardWidth + 5 }}px; height: {{ boardHeight + 5 }}px">
-    <div class="abs board-shadow" style="left: 5px; top: 5px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
+  <stack class="board-wrap" style="left: {{ boardLeft }}px; top: {{ boardTop }}px; width: {{ boardWidth + 7 }}px; height: {{ boardHeight + 8 }}px">
+    <div class="abs board-shadow" style="left: 7px; top: 8px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
     <div class="abs board" style="left: 0px; top: 0px; width: {{ boardWidth }}px; height: {{ boardHeight }}px"></div>
     <stack class="abs inner" style="left: 0px; top: 0px; width: {{ boardWidth }}px; height: {{ boardHeight }}px">
       <div class="abs goal" style="left: {{ goalLeft }}px; top: {{ goalTop }}px; width: {{ cellPx }}px; height: {{ cellPx }}px"></div>
@@ -12,7 +12,8 @@
 <script>
 export default {
   props: {
-    boardLeft: { default: 96 },
+    boardLeft: { default: 32 },
+    boardTop: { default: 93 },
     boardWidth: { default: 0 },
     boardHeight: { default: 0 },
     goalLeft: { default: 0 },
@@ -32,13 +33,14 @@ export default {
   position: absolute;
 }
 .board-shadow {
-  background-color: #ff5b8d;
+  background-color: #FF2E78;
 }
 .board {
-  background-color: #ffffff;
+  background-color: #F4F5F5;
+  border: 4px solid #111111;
 }
 .goal {
-  background-color: #FF5B8D;
+  background-color: #FF2E78;
 }
 .wall {
   background-color: #111111;

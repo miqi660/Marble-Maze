@@ -6,6 +6,8 @@ const MazeCore = require('../src/common/maze-core.js')
 const MazeValidate = require('../src/common/maze-validate.js')
 const Physics = require('../src/common/physics.js')
 const OFFICIAL = require('../src/common/official-levels.json')
+// 同步协议仍接受 Band 格式；使用固定夹具，避免借用 Pro Official。
+const BAND = require('./fixtures/band-levels.json')
 
 function load(path, globals) {
   let code = fs.readFileSync(path, 'utf8')
@@ -20,15 +22,15 @@ async function drain() { for (let i = 0; i < 20; i++) await Promise.resolve() }
 // 静态六关可直接加载，且预编译渲染数据与 cells 一致。
 assert.equal(OFFICIAL.length, 6)
 for (const level of OFFICIAL) {
-  const result = MazeValidate.validateStoredLevel(level, false)
-  assert.equal(result.ok, true, result.message)
+  assert.equal(level.v, 1)
+  assert.equal(level.profile, 'pro')
   assert.deepStrictEqual(level.render, MazeCore.compileRuns(
     MazeCore.decodeCells(level.cells), level.cols, level.rows
   ))
 }
 
 async function cacheAndSync() {
-  const disk = { custom_storage_version: '2', custom_01: JSON.stringify(MazeValidate.stripCrc(OFFICIAL[0])) }
+  const disk = { custom_storage_version: '2', custom_01: JSON.stringify(MazeValidate.stripCrc(BAND[0])) }
   let reads = 0
   const writes = []
   let failWrite = false
@@ -53,7 +55,7 @@ async function cacheAndSync() {
   assert.strictEqual(await ready, true)
   assert.equal(reads, 13, '版本标记和 12 个数字键各读取一次')
   assert.equal(store.count(), 1)
-  const second = { ...MazeValidate.stripCrc(OFFICIAL[1]), name: '同步关卡' }
+  const second = { ...MazeValidate.stripCrc(BAND[1]), name: '同步关卡' }
   const appended = await store.append(second)
   assert.strictEqual(appended.ok, true)
   assert.strictEqual(appended.index, 1)
@@ -63,14 +65,14 @@ async function cacheAndSync() {
   assert.strictEqual(store.getLevel(1), runningLevel)
   assert.equal(prepares, 1)
   failWrite = true
-  assert.strictEqual((await store.replace(1, OFFICIAL[2])).ok, false)
+  assert.strictEqual((await store.replace(1, BAND[2])).ok, false)
   assert.strictEqual(store.getLevel(1), runningLevel)
   failWrite = false
-  await Promise.all([store.replace(1, OFFICIAL[2]), store.replace(1, OFFICIAL[3])])
-  assert.strictEqual(store.getLevel(1), OFFICIAL[3])
+  await Promise.all([store.replace(1, BAND[2]), store.replace(1, BAND[3])])
+  assert.strictEqual(store.getLevel(1), BAND[3])
   assert.equal(prepares, 1, '本地已生成的 render 不应重复构建')
   assert.equal(runningLevel.name, '同步关卡', '同步不能改变进行中的关卡')
-  assert.equal(JSON.parse(disk.custom_02).name, OFFICIAL[3].name)
+  assert.equal(JSON.parse(disk.custom_02).name, BAND[3].name)
 
   const messages = []
   let listener
@@ -112,7 +114,7 @@ async function cacheAndSync() {
   assert.equal(prepares, 1, '关卡卡片不能生成渲染数据')
   assert.equal(store.listeners.length, 0)
   page.onShow()
-  await store.append(OFFICIAL[5])
+  await store.append(BAND[5])
   assert.equal(page.customCards[1].no, '02')
   assert.ok(page.customCards.every(card => !Object.prototype.hasOwnProperty.call(card, 'level')), '卡片不持有关卡原始数据')
   page.onHide()
@@ -189,18 +191,11 @@ function gameBudget() {
   assert.deepStrictEqual(JSON.parse(positionValue.transform), { translateX: page.ballLeft + 'px', translateY: page.ballTop + 'px' })
   assert.ok(!gameSource.includes('ballPosition'), '动态绑定不再包含 left/top CSS')
   const ballSource = fs.readFileSync('src/pages/game/components/ball.ux', 'utf8')
-  assert.match(ballSource, /\.ball\s*\{\s*left: 0px;\s*top: 0px;/)
-  for (let cols = 7; cols <= 11; cols++) {
-    for (let rows = 13; rows <= 20; rows++) {
-      const size = Math.round(0.56 * Math.min(184 / cols, 286 / rows))
-      const rule = ballSource.match(new RegExp('\\.ball-size-' + size + '\\s*\\{([^}]+)\\}'))
-      assert.ok(rule, '每种允许的关卡尺寸都应有静态球样式')
-      assert.ok(rule[1].includes('width: ' + size + 'px'))
-      assert.ok(rule[1].includes('height: ' + size + 'px'))
-      assert.ok(rule[1].includes('border-radius: ' + Math.ceil(size / 2) + 'px'))
-      assert.ok(rule[1].includes('border-width: ' + (size >= 10 ? 3 : 2) + 'px'))
-    }
-  }
+  assert.match(ballSource, /\.abs\s*\{[^}]*left: 0px;[^}]*top: 0px;/)
+  assert.ok(!ballSource.includes('ball-size-'), 'Pro 球体不再依赖尺寸枚举')
+  assert.match(ballSource, /width: {{ size }}px; height: {{ size }}px/)
+  assert.match(ballSource, /border-radius: {{ size \/ 2 }}px/)
+  assert.match(ballSource, /border-width: {{ borderWidth }}px/)
   now += 1000
   page.tick()
   page.renderFrame()

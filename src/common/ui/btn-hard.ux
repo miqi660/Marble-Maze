@@ -1,10 +1,10 @@
-<!-- 带硬阴影按钮：stack 内先放阴影 div（偏移 4,4），再叠本体；按下时本体位移、阴影隐藏 -->
+<!-- Pro 硬阴影按钮：尺寸与阴影可配置，按下时本体移到阴影位置。 -->
 <template>
-  <stack class="wrap" style="width: {{ width + 4 }}px; height: {{ height + 4 }}px"
+  <stack class="wrap" style="width: {{ width * 1 + shadowX * 1 }}px; height: {{ height * 1 + shadowY * 1 }}px"
     @touchstart="onDown" @touchend="onUp" @touchcancel="onUp" @click="onClick">
     <div class="shadow" show="{{ !pressed }}"
-      style="width: {{ width }}px; height: {{ height }}px; background-color: {{ shadow }}"></div>
-    <div class="body" style="width: {{ width }}px; height: {{ height }}px; background-color: {{ bg }}; left: {{ pressed ? 4 : 0 }}px; top: {{ pressed ? 4 : 0 }}px">
+      style="left: {{ shadowX }}px; top: {{ shadowY }}px; width: {{ width }}px; height: {{ height }}px; border-radius: {{ radius }}px; background-color: {{ shadow }}"></div>
+    <div class="body" style="width: {{ width }}px; height: {{ height }}px; background-color: {{ bg }}; border-width: {{ borderWidth }}px; border-radius: {{ radius }}px; left: {{ pressed ? shadowX : 0 }}px; top: {{ pressed ? shadowY : 0 }}px">
       <text class="label" style="color: {{ color }}; font-size: {{ fontSize }}px">{{ label }}</text>
     </div>
   </stack>
@@ -16,10 +16,15 @@ export default {
     label: { default: '' },
     width: { default: 160 },
     height: { default: 58 },
-    bg: { default: '#FFD323' },
+    bg: { default: '#FFD522' },
     shadow: { default: '#111111' },
     color: { default: '#111111' },
-    fontSize: { default: 22 }
+    fontSize: { default: 22 },
+    shadowX: { default: 4 },
+    shadowY: { default: 4 },
+    borderWidth: { default: 3 },
+    radius: { default: 0 },
+    feedbackOnClick: { default: true }
   },
   data: { pressed: false },
   onDown() {
@@ -29,7 +34,7 @@ export default {
     this.pressed = false
   },
   onClick() {
-    this.$app.$def.feedback()
+    if (this.feedbackOnClick) this.$app.$def.feedback()
     // click 继续冒泡到页面的原生按钮容器，由容器执行页面操作。
   }
 }

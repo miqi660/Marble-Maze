@@ -4,6 +4,8 @@ const vm = require('vm')
 const CustomLevels = require('../src/common/custom-levels.js')
 const MazeValidate = require('../src/common/maze-validate.js')
 const OFFICIAL = require('../src/common/official-levels.json')
+// 同步协议仍接受 Band 格式；使用固定夹具，避免借用 Pro Official。
+const BAND = require('./fixtures/band-levels.json')
 
 function load(path, globals) {
   let code = fs.readFileSync(path, 'utf8')
@@ -56,7 +58,7 @@ async function migrationTests() {
   const disk = {}
   for (let index = 0; index < CustomLevels.MAX_CUSTOM_LEVELS; index++) {
     const letter = String.fromCharCode(97 + index)
-    disk['custom_' + letter] = JSON.stringify(MazeValidate.stripCrc(makeLevel(OFFICIAL[index % 6], '旧关卡 ' + (index + 1))))
+    disk['custom_' + letter] = JSON.stringify(MazeValidate.stripCrc(makeLevel(BAND[index % 6], '旧关卡 ' + (index + 1))))
   }
   const store = makeStore(makeDiskStorage(disk))
   assert.strictEqual(await store.init(), true)
@@ -71,9 +73,9 @@ async function migrationTests() {
   }
 
   const sparseDisk = {
-    custom_a: JSON.stringify(MazeValidate.stripCrc(makeLevel(OFFICIAL[0], 'A'))),
+    custom_a: JSON.stringify(MazeValidate.stripCrc(makeLevel(BAND[0], 'A'))),
     custom_b: '{invalid',
-    custom_c: JSON.stringify(MazeValidate.stripCrc(makeLevel(OFFICIAL[1], 'C'))),
+    custom_c: JSON.stringify(MazeValidate.stripCrc(makeLevel(BAND[1], 'C'))),
     custom_d: JSON.stringify({ v: 9 })
   }
   const sparseStore = makeStore(makeDiskStorage(sparseDisk))
@@ -84,7 +86,7 @@ async function migrationTests() {
   assert.strictEqual(sparseDisk.custom_03, undefined)
 
   const failedDisk = {
-    custom_a: JSON.stringify(MazeValidate.stripCrc(makeLevel(OFFICIAL[0], '保留旧数据')))
+    custom_a: JSON.stringify(MazeValidate.stripCrc(makeLevel(BAND[0], '保留旧数据')))
   }
   const failedStorage = makeDiskStorage(failedDisk, { failKey: 'custom_01' })
   const failedStore = makeStore(failedStorage)
@@ -97,8 +99,8 @@ async function migrationTests() {
   assert.strictEqual(retryStore.get(0).name, '保留旧数据')
 
   const failedDeleteDisk = {
-    custom_a: JSON.stringify(MazeValidate.stripCrc(makeLevel(OFFICIAL[0], '恢复 A'))),
-    custom_b: JSON.stringify(MazeValidate.stripCrc(makeLevel(OFFICIAL[1], '保留 B')))
+    custom_a: JSON.stringify(MazeValidate.stripCrc(makeLevel(BAND[0], '恢复 A'))),
+    custom_b: JSON.stringify(MazeValidate.stripCrc(makeLevel(BAND[1], '保留 B')))
   }
   const failedDeleteStore = makeStore(makeDiskStorage(failedDeleteDisk, { failDeleteKey: 'custom_b' }))
   assert.strictEqual(await failedDeleteStore.init(), false)
@@ -113,9 +115,9 @@ async function storeAndProtocolTests() {
   assert.strictEqual(await store.init(), true)
 
   const queued = await Promise.all([
-    store.append(MazeValidate.stripCrc(makeLevel(OFFICIAL[0], 'A'))),
-    store.append(MazeValidate.stripCrc(makeLevel(OFFICIAL[1], 'B'))),
-    store.replace(0, MazeValidate.stripCrc(makeLevel(OFFICIAL[2], 'X'))),
+    store.append(MazeValidate.stripCrc(makeLevel(BAND[0], 'A'))),
+    store.append(MazeValidate.stripCrc(makeLevel(BAND[1], 'B'))),
+    store.replace(0, MazeValidate.stripCrc(makeLevel(BAND[2], 'X'))),
     store.remove(0)
   ])
   assert.ok(queued.every((result) => result.ok))
@@ -129,18 +131,18 @@ async function storeAndProtocolTests() {
   MazeSync.store = store
   const sync = new MazeSync({ send(message) { sent.push(Object.assign({ tag: 'maze' }, message)); return Promise.resolve() }, addListener() {} })
   for (let index = 1; index < 12; index++) {
-    const result = await sync.handleAdd({ level: makeLevel(OFFICIAL[index % 6], '关卡 ' + (index + 1)) })
+    const result = await sync.handleAdd({ level: makeLevel(BAND[index % 6], '关卡 ' + (index + 1)) })
     assert.strictEqual(result.ok, true)
     assert.strictEqual(result.index, index)
   }
   assert.strictEqual(store.count(), 12)
-  const full = await sync.handleAdd({ level: makeLevel(OFFICIAL[0], '第 13 关') })
+  const full = await sync.handleAdd({ level: makeLevel(BAND[0], '第 13 关') })
   assert.strictEqual(full.ok, false)
   assert.strictEqual(full.message, 'custom levels full')
   assert.strictEqual(sent[sent.length - 1].message, 'custom levels full')
   assert.strictEqual(sent[sent.length - 1].stat, 'add')
 
-  const replacement = await sync.handleReplace({ index: 2, level: makeLevel(OFFICIAL[5], '替换关卡') })
+  const replacement = await sync.handleReplace({ index: 2, level: makeLevel(BAND[5], '替换关卡') })
   assert.strictEqual(replacement.ok, true)
   assert.strictEqual(store.get(2).name, '替换关卡')
   const removed = await sync.handleRemove({ index: 1 })
@@ -165,7 +167,7 @@ async function storeAndProtocolTests() {
 }
 
 function makeLevelsPage(count, routerCalls, globals) {
-  const levels = Array.from({ length: count }, (_, index) => Object.assign({}, MazeValidate.stripCrc(OFFICIAL[index % 6]), { name: '自定义 ' + (index + 1) }))
+  const levels = Array.from({ length: count }, (_, index) => Object.assign({}, MazeValidate.stripCrc(BAND[index % 6]), { name: '自定义 ' + (index + 1) }))
   const store = { list: () => levels, ready: Promise.resolve(true), init() { return this.ready }, subscribe: () => () => {} }
   const definition = load('src/pages/levels/levels.ux', Object.assign({
     router: { push(route) { routerCalls.push(route) } },
@@ -202,8 +204,8 @@ function viewModelTests() {
       const secondPage = page.customCards.filter((card) => card.page === 2)
       assert.strictEqual(secondPage.length, 1)
       assert.strictEqual(secondPage[0].type, 'add')
-      assert.strictEqual(secondPage[0].left, 18)
-      assert.strictEqual(secondPage[0].top, 148)
+      assert.strictEqual(secondPage[0].left, 16)
+      assert.strictEqual(secondPage[0].top, 137)
     }
     if (count === 7) {
       assert.strictEqual(page.customCards.filter((card) => card.page === 1).length, 6)

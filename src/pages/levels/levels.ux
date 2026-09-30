@@ -1,74 +1,47 @@
+
 <template>
   <stack class="page container" @touchstart="onTouchStart" @touchend="onTouchEnd">
     <stack class="design-stage">
-      <stack class="page page-content {{ slideClass }}">
-      <!-- 页 1：Official -->
-      <stack if="{{ pageIndex === 0 }}" class="page">
-        <div class="abs" style="left: 57px; top: 48px">
-          <text class="eyebrow" style="width: 78px">LEVELS</text>
-        </div>
-        <text class="abs title title-shadow" style="left: 20px; top: 86px">选择关卡</text>
-        <text class="abs title" style="left: 16px; top: 82px">选择关卡</text>
-        <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
-        <div class="abs bar" style="left: 43px; top: 117px"></div>
-
-        <!-- 2 列网格 @top148，卡片 74×68，列距 8，行距 13 -->
-        <block for="{{ (i, item) in officialCards }}">
-          <div class="abs shadow" style="left: {{ item.left + 4 }}px; top: {{ item.top + 4 }}px; background-color: {{ item.locked ? '#8A847C' : item.selected ? '#FF5B8D' : '#111111' }}"></div>
-          <div class="abs card" style="left: {{ item.left }}px; top: {{ item.top }}px; background-color: {{ item.locked ? '#D9D4CC' : item.selected ? '#FFD323' : '#FFFFFF' }}" @click="playOfficial(i)">
-            <text class="card-label" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.locked ? '未解锁' : '关卡' }}</text>
-            <text class="card-no" style="color: {{ item.locked ? '#77716A' : '#111111' }}">{{ item.no }}</text>
-            <div class="check" show="{{ item.cleared }}"><text class="check-txt">✓</text></div>
-            <div class="lock" show="{{ item.locked }}">
-              <div class="lock-shackle"></div>
-              <div class="lock-body"></div>
-              <div class="lock-keyhole"></div>
-              <div class="lock-keyhole-stem"></div>
-            </div>
-          </div>
-        </block>
-
-        <!-- 进度卡 156×36 @top395 -->
-        <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
-        <div class="abs prog prog-between" style="left: 18px; top: 395px">
-          <text class="prog-label">已完成</text>
-          <text class="prog-count">{{ progress }} / {{ officialCount }}</text>
-        </div>
+      <stack class="paper">
+        <stack class="screen page-content {{ slideClass }}">
+          <stack if="{{ pageIndex === 0 }}" class="screen">
+            <text class="abs eyebrow" style="left: 20px; top: 18px; width: 78px">LEVELS</text>
+            <text class="abs title" style="left: 0px; top: 48px">选择关卡</text>
+            <div class="abs bar" style="left: 112px; top: 109px"></div>
+            <block for="{{ (i, item) in officialCards }}">
+              <div class="abs shadow" style="left: {{ item.left + 4 }}px; top: {{ item.top + 5 }}px; background-color: {{ item.selected ? '#FF3E8A' : '#111111' }}"></div>
+              <stack class="abs card" style="left: {{ item.left }}px; top: {{ item.top }}px; background-color: {{ item.locked ? '#D9D4CC' : '#FFD522' }}" @click="playOfficial(i)">
+                <text class="card-label" style="color: {{ item.locked ? '#777777' : '#111111' }}">{{ item.locked ? '未解锁' : '关卡' }}</text>
+                <text class="card-no" style="color: {{ item.locked ? '#777777' : '#111111' }}">{{ item.no }}</text>
+                <div class="check" show="{{ item.cleared }}"><text class="check-txt">✓</text></div>
+                <stack class="lock" show="{{ item.locked }}"><div class="lock-shackle"></div><div class="lock-body"></div><div class="lock-keyhole"></div><div class="lock-keyhole-stem"></div></stack>
+              </stack>
+            </block>
+            <stack class="abs prog" style="left: 16px; top: 371px">
+              <text class="abs prog-label" style="left: 12px; top: 7px">已完成</text>
+              <text class="abs prog-count" style="left: 185px; top: 7px">{{ progress }} / {{ officialCount }}</text>
+              <stack class="abs track" style="left: 12px; top: 31px"><div class="fill" style="width: {{ progressWidth }}px"></div></stack>
+            </stack>
+          </stack>
+          <stack if="{{ pageIndex > 0 }}" class="screen">
+            <text class="abs eyebrow" style="left: 20px; top: 18px; width: 82px">CUSTOM</text>
+            <text class="abs title" style="left: 0px; top: 48px">自定义</text>
+            <div class="abs bar" style="left: 112px; top: 109px"></div>
+            <block for="{{ (ci, card) in customCards }}">
+              <block if="{{ card.page === pageIndex && card.type === 'level' }}">
+                <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 5 }}px; background-color: #111111"></div>
+                <stack class="abs card" style="left: {{ card.left }}px; top: {{ card.top }}px; background-color: #FFD522" @click="playCustom(card.index)"><text class="card-label">{{ card.diffLabel }}</text><text class="card-no">{{ card.no }}</text></stack>
+              </block>
+              <block if="{{ card.page === pageIndex && card.type === 'add' }}">
+                <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 5 }}px; background-color: #A8A8A8"></div>
+                <div class="abs card add-card" style="left: {{ card.left }}px; top: {{ card.top }}px"><text class="empty-plus">+</text></div>
+              </block>
+            </block>
+            <div class="abs prog custom-progress" style="left: 16px; top: 371px"><text class="prog-txt">{{ pageIndex === 1 ? '01-06' : '07-12' }}</text></div>
+          </stack>
+        </stack>
+        <div class="abs pagination" style="left: 0px; top: 440px"><div class="page-dot" for="{{ pageDots }}" style="background-color: {{ $item.active ? '#FF3E8A' : '#111111' }}"></div></div>
       </stack>
-
-      <!-- 页 2/3：统一自定义关卡，每页 2 列 × 3 行。 -->
-      <stack if="{{ pageIndex > 0 }}" class="page">
-        <div class="abs" style="left: 55px; top: 48px">
-          <text class="eyebrow" style="width: 82px">CUSTOM</text>
-        </div>
-        <text class="abs title title-shadow" style="left: 20px; top: 86px">自定义</text>
-        <text class="abs title" style="left: 16px; top: 82px">自定义</text>
-        <div class="abs bar-shadow" style="left: 47px; top: 121px"></div>
-        <div class="abs bar" style="left: 43px; top: 117px"></div>
-        <block for="{{ (ci, card) in customCards }}">
-          <block if="{{ card.page === pageIndex && card.type === 'level' }}">
-            <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #111111"></div>
-            <div class="abs card" style="left: {{ card.left }}px; top: {{ card.top }}px; background-color: #FFFFFF" @click="playCustom(card.index)">
-              <text class="card-label">{{ card.diffLabel }}</text>
-              <text class="card-no">{{ card.no }}</text>
-            </div>
-          </block>
-          <block if="{{ card.page === pageIndex && card.type === 'add' }}">
-            <div class="abs shadow" style="left: {{ card.left + 4 }}px; top: {{ card.top + 4 }}px; background-color: #D9D4CC"></div>
-            <div class="abs card add-card" style="left: {{ card.left }}px; top: {{ card.top }}px">
-              <text class="empty-plus">+</text>
-            </div>
-          </block>
-        </block>
-        <div class="abs prog-shadow" style="left: 22px; top: 399px"></div>
-        <div class="abs prog" style="left: 18px; top: 395px">
-          <text class="prog-txt">{{ pageIndex === 1 ? '01-06' : '07-12' }}</text>
-        </div>
-      </stack>
-      </stack>
-      <div class="abs pagination" style="left: 0px; top: 446px">
-        <div class="page-dot" for="{{ pageDots }}" style="background-color: {{ $item.active ? '#FF5B8D' : $item.index === 0 ? '#F3EFE7' : '#FFD323' }}; border-color: {{ $item.active ? '#FF5B8D' : '#111111' }}"></div>
-      </div>
     </stack>
   </stack>
 </template>
@@ -85,6 +58,7 @@ export default {
     pageIndex: 0,
     slideClass: '',
     progress: 0,
+    progressWidth: 0,
     officialCount: OFFICIAL.length,
     officialCards: [],
     customCards: [],
@@ -132,19 +106,20 @@ export default {
     this.onHide()
   },
 
-  /** Official 网格：2 列，卡 74×68，列距 8，行距 13，@top148，左右各留 18 */
+  /** Pro 网格：3 列 × 2 行，85×100，间隔 8，Paper 内坐标。 */
   buildCards() {
     const progress = this.$app.$def.progress
     if (this.officialCards.length && this.progress === progress) return
     this.progress = progress
+    this.progressWidth = 248 * Math.max(0, Math.min(progress, OFFICIAL.length)) / OFFICIAL.length
     const cards = []
     for (let i = 0; i < OFFICIAL.length; i++) {
-      const col = i % 2
-      const row = Math.floor(i / 2)
+      const col = i % 3
+      const row = Math.floor(i / 3)
       cards.push({
         no: i + 1 < 10 ? '0' + (i + 1) : String(i + 1),
-        left: 18 + col * (74 + 8),
-        top: 148 + row * (68 + 13),
+        left: 16 + col * (85 + 8),
+        top: 137 + row * (100 + 8),
         cleared: i < progress,
         selected: i === Math.min(progress, OFFICIAL.length - 1),
         locked: i > progress
@@ -170,8 +145,8 @@ export default {
         no: index + 1 < 10 ? '0' + (index + 1) : String(index + 1),
         page: 1 + Math.floor(index / CustomLevels.CUSTOM_PAGE_SIZE),
         diffLabel: DIFFICULTY_LABEL[level.difficulty] || '自定义',
-        left: 18 + (localIndex % 2) * 82,
-        top: 148 + Math.floor(localIndex / 2) * 81
+        left: 16 + (localIndex % 3) * 93,
+        top: 137 + Math.floor(localIndex / 3) * 108
       })
     }
     const count = levels.length
@@ -181,8 +156,8 @@ export default {
         type: 'add',
         index: count,
         page: 1 + Math.floor(count / CustomLevels.CUSTOM_PAGE_SIZE),
-        left: 18 + (localIndex % 2) * 82,
-        top: 148 + Math.floor(localIndex / 2) * 81
+        left: 16 + (localIndex % 3) * 93,
+        top: 137 + Math.floor(localIndex / 3) * 108
       })
     }
     this.customCount = count
@@ -302,230 +277,42 @@ export default {
 </script>
 
 <style>
-.page {
-  width: 192px;
-  height: 490px;
-  background-color: #f3efe7;
-}
-.abs {
-  position: absolute;
-}
-.page-content {
-  animation-duration: 220ms;
-  animation-timing-function: ease-out;
-  animation-iteration-count: 1;
-}
-.slide-from-right {
-  animation-name: slideFromRight;
-}
-.slide-from-left {
-  animation-name: slideFromLeft;
-}
-@keyframes slideFromRight {
-  0% { transform: translateX(192px); }
-  100% { transform: translateX(0px); }
-}
-@keyframes slideFromLeft {
-  0% { transform: translateX(-192px); }
-  100% { transform: translateX(0px); }
-}
-.eyebrow {
-  height: 24px;
-  background-color: #111111;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.8px;
-  text-align: center;
-}
-.title {
-  width: 160px;
-  height: 39px;
-  letter-spacing: -2px;
-  font-size: 33px;
-  font-weight: 900;
-  color: #111111;
-  text-align: center;
-}
-.title-shadow {
-  color: #ffd323;
-}
-.bar {
-  width: 106px;
-  height: 8px;
-  background-color: #ff5b8d;
-}
-.bar-shadow {
-  width: 106px;
-  height: 8px;
-  background-color: #111111;
-}
-.shadow {
-  width: 74px;
-  height: 68px;
-}
-.card {
-  width: 74px;
-  height: 68px;
-  border: 3px solid #111111;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-.card-no {
-  position: absolute;
-  left: 8px;
-  bottom: 6px;
-  height: 36px;
-  color: #111111;
-  font-size: 34px;
-  font-weight: 900;
-  letter-spacing: -2px;
-}
-.card-label {
-  position: absolute;
-  left: 8px;
-  top: 7px;
-  font-size: 11px;
-  letter-spacing: 0px;
-  font-weight: 900;
-  color: #111111;
-}
-.check {
-  position: absolute;
-  right: 5px;
-  top: 4px;
-  width: 17px;
-  height: 17px;
-  background-color: #111111;
-  justify-content: center;
-  align-items: center;
-}
-.check-txt {
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 900;
-}
-.lock {
-  position: absolute;
-  right: 4px;
-  top: 6px;
-  width: 16px;
-  height: 20px;
-}
-.lock-shackle {
-  position: absolute;
-  left: 3px;
-  top: 0px;
-  width: 10px;
-  height: 13px;
-  border: 2px solid #111111;
-  border-radius: 5px;
-}
-.lock-body {
-  position: absolute;
-  left: 0px;
-  top: 8px;
-  width: 16px;
-  height: 12px;
-  background-color: #111111;
-  border-radius: 2px;
-}
-.lock-keyhole {
-  position: absolute;
-  left: 6px;
-  top: 11px;
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background-color: #d9d4cc;
-}
-.lock-keyhole-stem {
-  position: absolute;
-  left: 7px;
-  top: 14px;
-  width: 2px;
-  height: 3px;
-  background-color: #d9d4cc;
-}
-.prog-shadow {
-  width: 156px;
-  height: 36px;
-  background-color: #ff5b8d;
-}
-.prog {
-  width: 156px;
-  height: 36px;
-  background-color: #ffffff;
-  border: 3px solid #111111;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-}
-.prog-between {
-  justify-content: space-between;
-  padding-left: 9px;
-  padding-right: 9px;
-}
-.prog-label {
-  font-size: 12px;
-  font-weight: 900;
-  color: #111111;
-}
-.prog-count {
-  font-size: 20px;
-  font-weight: 900;
-  color: #111111;
-}
-.prog-txt {
-  font-size: 14px;
-  font-weight: 900;
-  color: #111111;
-}
-.empty-plus {
-  font-size: 38px;
-  color: #66615b;
-  text-align: center;
-}
-.add-card {
-  background-color: #f3efe7;
-}
-.pagination {
-  width: 192px;
-  height: 10px;
-  justify-content: center;
-  align-items: center;
-}
-.page-dot {
-  width: 9px;
-  height: 9px;
-  margin-left: 3.5px;
-  margin-right: 3.5px;
-  border: 2px solid #111111;
-  border-radius: 5px;
-}
-.container {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-/* 内容保留 192×490 坐标；外层负责满屏背景和裁切。 */
-.design-stage {
-  position: absolute;
-  left: 0px;
-  top: 0px;
-  width: 192px;
-  height: 490px;
-}
-/* Band 10：212×520，DPR=2；按高度等比适配，避免按宽度放大后超高。 */
-@media (width: 106) and (height: 260) {
-  .design-stage {
-    left: 3.733539px;
-    transform: scale(0.96110897);
-    transform-origin: 0px 0px;
-  }
-}
+.page { width: 100%; height: 100%; background-color: #090909; }
+.container { position: absolute; left: 0px; top: 0px; overflow: hidden; }
+.design-stage { position: absolute; left: 0px; top: 0px; width: 336px; height: 480px; }
+.paper { position: absolute; left: 16px; top: 0px; width: 304px; height: 480px; background-color: #FAF8F3; }
+.abs { position: absolute; }
+.paper { border-radius: 24px; }
+.screen { width: 304px; height: 480px; }
+.page-content { animation-duration: 220ms; animation-timing-function: ease-out; animation-iteration-count: 1; }
+.slide-from-right { animation-name: slideFromRight; }
+.slide-from-left { animation-name: slideFromLeft; }
+@keyframes slideFromRight { 0% { transform: translateX(336px); } 100% { transform: translateX(0px); } }
+@keyframes slideFromLeft { 0% { transform: translateX(-336px); } 100% { transform: translateX(0px); } }
+.eyebrow { height: 24px; background-color: #111111; color: #FAF8F3; font-size: 13px; font-weight: 900; text-align: center; border-radius: 4px; }
+.title { width: 304px; height: 44px; font-size: 32px; font-weight: 900; color: #111111; text-align: center; }
+.bar { width: 80px; height: 4px; background-color: #FF3E8A; border-radius: 2px; }
+.shadow, .card { width: 85px; height: 100px; }
+.card { border: 3px solid #111111; justify-content: center; align-items: center; }
+.card-label { position: absolute; left: 7px; top: 10px; font-size: 12px; font-weight: 900; color: #111111; }
+.card-no { position: absolute; left: 7px; top: 32px; width: 70px; height: 61px; font-size: 50px; font-weight: 900; color: #111111; letter-spacing: -2px; }
+.check { position: absolute; right: 5px; top: 7px; width: 17px; height: 17px; background-color: #111111; justify-content: center; align-items: center; }
+.check-txt { color: #FAF8F3; font-size: 11px; font-weight: 900; }
+.lock { position: absolute; right: 4px; top: 7px; width: 16px; height: 20px; }
+.lock-shackle { position: absolute; left: 3px; top: 0px; width: 10px; height: 13px; border: 2px solid #111111; border-radius: 5px; }
+.lock-body { position: absolute; left: 0px; top: 8px; width: 16px; height: 12px; background-color: #111111; border-radius: 2px; }
+.lock-keyhole { position: absolute; left: 6px; top: 11px; width: 4px; height: 4px; border-radius: 2px; background-color: #D9D4CC; }
+.lock-keyhole-stem { position: absolute; left: 7px; top: 14px; width: 2px; height: 3px; background-color: #D9D4CC; }
+.prog { width: 272px; height: 53px; background-color: #FAF8F3; border: 2.5px solid #FF3E8A; border-radius: 6px; }
+.prog-label, .prog-count { height: 20px; font-size: 14px; font-weight: 900; color: #111111; }
+.prog-count { width: 75px; text-align: right; }
+.track { width: 248px; height: 10px; border-radius: 5px; background-color: #E5E5E5; }
+.fill { height: 10px; border-radius: 5px; background-color: #FFD522; }
+.custom-progress { justify-content: center; align-items: center; }
+.prog-txt { font-size: 18px; font-weight: 900; color: #111111; }
+.empty-plus { font-size: 52px; font-weight: 900; color: #A4A4A4; text-align: center; }
+.add-card { background-color: #F4F5F5; }
+.pagination { width: 304px; height: 10px; justify-content: center; align-items: center; }
+.page-dot { width: 10px; height: 10px; margin-left: 4px; margin-right: 4px; border-radius: 5px; }
+
 </style>
