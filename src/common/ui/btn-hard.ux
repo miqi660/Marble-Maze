@@ -54,7 +54,7 @@ export default {
   align-items: center;
 }
 .label {
-  font-weight: 900;
+  font-weight: bold;
   text-align: center;
 }
 </style>

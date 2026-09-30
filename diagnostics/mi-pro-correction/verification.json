@@ -1,0 +1,57 @@
+{
+  "designFile": "C:/Users/Administrator/Desktop/新建文件夹/無題.fig",
+  "designSHA256": "008a6f3098b0d501cf40f1f961c21ea3e58943d9d681de2f805b16f63c7cc69b",
+  "exportedAt": "2026-09-30T11:29:51.699Z",
+  "parsed": true,
+  "nodeCount": 162,
+  "pages": [
+    "首页",
+    "设置",
+    "关卡选择",
+    "游戏关卡"
+  ],
+  "completeInDesign": false,
+  "designMaze": {
+    "left": 30,
+    "top": 90,
+    "width": 269,
+    "height": 290,
+    "outerWidth": 276,
+    "outerHeight": 300
+  },
+  "authorizedMazeViewport": {
+    "left": 8,
+    "top": 83,
+    "width": 320,
+    "height": 316
+  },
+  "lint": {
+    "scripts": 24,
+    "errors": 0
+  },
+  "tests": {
+    "files": 15,
+    "passed": 15
+  },
+  "build": {
+    "node": "v24.16.0",
+    "toolkit": "2.0.5",
+    "type": "debug",
+    "filename": "com.MarbleMaze.watch.mi-pro-correction.debug.rpk",
+    "size": 101704,
+    "sha256": "c7e7cba0d298d0e33a8f77cec8342490d0d5455508b0fe8a62e6597c0532b884"
+  },
+  "branch": "MI-Pro",
+  "protectedSiblingBranch": {
+    "name": "MI-Band",
+    "sha": "1047b760b242e66030d41e6e031611df52990880"
+  },
+  "visualScreens": [
+    "home.png",
+    "settings.png",
+    "levels.png",
+    "game.png",
+    "complete.png"
+  ],
+  "completeScreenshotUsesIsolatedVisualFixture": true
+}

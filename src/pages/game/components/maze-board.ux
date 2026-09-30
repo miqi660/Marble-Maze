@@ -12,8 +12,8 @@
 <script>
 export default {
   props: {
-    boardLeft: { default: 32 },
-    boardTop: { default: 93 },
+    boardLeft: { default: 8 },
+    boardTop: { default: 83 },
     boardWidth: { default: 0 },
     boardHeight: { default: 0 },
     goalLeft: { default: 0 },
@@ -27,7 +27,6 @@ export default {
 <style>
 .board-wrap {
   position: absolute;
-  top: 100px;
 }
 .abs {
   position: absolute;

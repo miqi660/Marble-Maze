@@ -1,0 +1,3694 @@
+[
+  {
+    "id": "0:0",
+    "name": "Document",
+    "type": "DOCUMENT",
+    "xy": [
+      0,
+      0
+    ],
+    "border": 0,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "0:1",
+    "parent": "0:0",
+    "name": "Page 1",
+    "type": "CANVAS",
+    "xy": [
+      0,
+      0
+    ],
+    "border": 0,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "0:2",
+    "parent": "0:0",
+    "name": "Internal Only Canvas",
+    "type": "CANVAS",
+    "xy": [
+      0,
+      0
+    ],
+    "border": 0,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:495",
+    "parent": "0:1",
+    "name": "首页",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      4694,
+      -451
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.03529411926865578,
+          "g": 0.03529411926865578,
+          "b": 0.03529411926865578,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:496",
+    "parent": "4:495",
+    "name": "Paper panel",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:497",
+    "parent": "4:496",
+    "name": "Header",
+    "type": "FRAME",
+    "size": {
+      "x": 264,
+      "y": 36
+    },
+    "xy": [
+      36,
+      17
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:502",
+    "parent": "4:496",
+    "name": "Game identity",
+    "type": "FRAME",
+    "size": {
+      "x": 264,
+      "y": 160
+    },
+    "xy": [
+      36,
+      64
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 10
+  },
+  {
+    "id": "4:503",
+    "parent": "4:502",
+    "name": "Title lockup",
+    "type": "FRAME",
+    "size": {
+      "x": 264,
+      "y": 82
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 10
+  },
+  {
+    "id": "4:504",
+    "parent": "4:503",
+    "name": "Title",
+    "type": "TEXT",
+    "size": {
+      "x": 128,
+      "y": 77
+    },
+    "xy": [
+      0,
+      2.5
+    ],
+    "fontSize": 64,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -3,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 5,
+          "y": 5
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.8352941274642944,
+          "c2": 0.13333334028720856,
+          "c3": 1
+        }
+      }
+    ],
+    "text": "腕上",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:505",
+    "parent": "4:503",
+    "name": "Maze badge",
+    "type": "FRAME",
+    "size": {
+      "x": 122,
+      "y": 82
+    },
+    "xy": [
+      138,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 7,
+          "y": 8
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 0.03529411926865578,
+          "g": 0.03529411926865578,
+          "b": 0.03529411926865578,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 0.03529411926865578,
+          "c1": 0.03529411926865578,
+          "c2": 0.03529411926865578,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:506",
+    "parent": "4:505",
+    "name": "Label",
+    "type": "TEXT",
+    "size": {
+      "x": 100,
+      "y": 62
+    },
+    "xy": [
+      11,
+      10
+    ],
+    "fontSize": 48,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "迷宫",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:507",
+    "parent": "4:502",
+    "name": "Instructions",
+    "type": "FRAME",
+    "size": {
+      "x": 264,
+      "y": 49
+    },
+    "xy": [
+      0,
+      92
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 2
+  },
+  {
+    "id": "4:508",
+    "parent": "4:507",
+    "name": "English instruction",
+    "type": "TEXT",
+    "size": {
+      "x": 97,
+      "y": 18
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fontSize": 15,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 1,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "TILT TO PLAY",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:509",
+    "parent": "4:507",
+    "name": "Chinese instruction",
+    "type": "TEXT",
+    "size": {
+      "x": 264,
+      "y": 29
+    },
+    "xy": [
+      0,
+      20
+    ],
+    "fontSize": 24,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "倾斜手环 · 滚球到终点",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:511",
+    "parent": "4:496",
+    "name": "Primary action",
+    "type": "FRAME",
+    "size": {
+      "x": 264,
+      "y": 68
+    },
+    "xy": [
+      36,
+      259
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:512",
+    "parent": "4:511",
+    "name": "Button",
+    "type": "FRAME",
+    "size": {
+      "x": 264,
+      "y": 68
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 7,
+          "y": 8
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 0.03529411926865578,
+          "g": 0.03529411926865578,
+          "b": 0.03529411926865578,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 0.03529411926865578,
+          "c1": 0.03529411926865578,
+          "c2": 0.03529411926865578,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:513",
+    "parent": "4:512",
+    "name": "Label",
+    "type": "TEXT",
+    "size": {
+      "x": 72,
+      "y": 43
+    },
+    "xy": [
+      96,
+      12.5
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "开始",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:514",
+    "parent": "4:496",
+    "name": "Secondary action",
+    "type": "FRAME",
+    "size": {
+      "x": 234,
+      "y": 65
+    },
+    "xy": [
+      51,
+      355
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 7,
+          "y": 8
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.18039216101169586,
+          "b": 0.47058823704719543,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.18039216101169586,
+          "c2": 0.47058823704719543,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:515",
+    "parent": "4:514",
+    "name": "Label",
+    "type": "TEXT",
+    "size": {
+      "x": 40,
+      "y": 24
+    },
+    "xy": [
+      97,
+      20.5
+    ],
+    "fontSize": 20,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "设置",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:517",
+    "parent": "0:1",
+    "name": "设置",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      5102,
+      -451
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.03529411926865578,
+          "g": 0.03529411926865578,
+          "b": 0.03529411926865578,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:518",
+    "parent": "4:517",
+    "name": "Paper panel",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:519",
+    "parent": "4:518",
+    "name": "Header",
+    "type": "FRAME",
+    "size": {
+      "x": 280,
+      "y": 54
+    },
+    "xy": [
+      28,
+      18
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:522",
+    "parent": "4:519",
+    "name": "Title",
+    "type": "TEXT",
+    "size": {
+      "x": 60,
+      "y": 36
+    },
+    "xy": [
+      110,
+      9
+    ],
+    "fontSize": 30,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "设置",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:524",
+    "parent": "4:518",
+    "name": "Settings list",
+    "type": "FRAME",
+    "size": {
+      "x": 272,
+      "y": 286
+    },
+    "xy": [
+      28,
+      89
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 18
+  },
+  {
+    "id": "4:525",
+    "parent": "4:524",
+    "name": "Setting card",
+    "type": "FRAME",
+    "size": {
+      "x": 272,
+      "y": 108
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 7,
+          "y": 8
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.18039216101169586,
+          "b": 0.47058823704719543,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.18039216101169586,
+          "c2": 0.47058823704719543,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      18,
+      10,
+      18,
+      10
+    ]
+  },
+  {
+    "id": "4:526",
+    "parent": "4:525",
+    "name": "Setting copy",
+    "type": "FRAME",
+    "size": {
+      "x": 150,
+      "y": 45
+    },
+    "xy": [
+      18,
+      31.5
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 3
+  },
+  {
+    "id": "4:527",
+    "parent": "4:526",
+    "name": "Title",
+    "type": "TEXT",
+    "size": {
+      "x": 150,
+      "y": 23
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fontSize": 19,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "按钮震动",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:528",
+    "parent": "4:526",
+    "name": "Status",
+    "type": "TEXT",
+    "size": {
+      "x": 48,
+      "y": 19
+    },
+    "xy": [
+      0,
+      26
+    ],
+    "fontSize": 16,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.3686274588108063,
+          "g": 0.3686274588108063,
+          "b": 0.3686274588108063,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "已开启",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:529",
+    "parent": "4:525",
+    "name": "Toggle",
+    "type": "FRAME",
+    "size": {
+      "x": 72,
+      "y": 38
+    },
+    "xy": [
+      182,
+      35
+    ],
+    "radius": 999,
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      4,
+      4,
+      4,
+      4
+    ]
+  },
+  {
+    "id": "4:530",
+    "parent": "4:529",
+    "name": "Thumb",
+    "type": "ELLIPSE",
+    "size": {
+      "x": 30,
+      "y": 30
+    },
+    "xy": [
+      38,
+      4
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.03529411926865578,
+          "g": 0.03529411926865578,
+          "b": 0.03529411926865578,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:531",
+    "parent": "4:524",
+    "name": "Brightness card",
+    "type": "FRAME",
+    "size": {
+      "x": 272,
+      "y": 149
+    },
+    "xy": [
+      0,
+      126
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 7,
+          "y": 8
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.8352941274642944,
+          "c2": 0.13333334028720856,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      16,
+      14,
+      16,
+      13
+    ]
+  },
+  {
+    "id": "4:532",
+    "parent": "4:531",
+    "name": "Brightness",
+    "type": "TEXT",
+    "size": {
+      "x": 129,
+      "y": 24
+    },
+    "xy": [
+      71.5,
+      14
+    ],
+    "fontSize": 20,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "应用亮度 50%",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:533",
+    "parent": "4:531",
+    "name": "Brightness controls",
+    "type": "FRAME",
+    "size": {
+      "x": 240,
+      "y": 92
+    },
+    "xy": [
+      16,
+      38
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:534",
+    "parent": "4:533",
+    "name": "Decrease",
+    "type": "FRAME",
+    "size": {
+      "x": 100,
+      "y": 74
+    },
+    "xy": [
+      0,
+      9
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 3,
+          "y": 3
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 0.6431372761726379,
+          "g": 0.6431372761726379,
+          "b": 0.6431372761726379,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 0.6431372761726379,
+          "c1": 0.6431372761726379,
+          "c2": 0.6431372761726379,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:535",
+    "parent": "4:534",
+    "name": "Symbol",
+    "type": "TEXT",
+    "size": {
+      "x": 22,
+      "y": 43
+    },
+    "xy": [
+      39,
+      15.5
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "−",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:536",
+    "parent": "4:533",
+    "name": "Divider",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 3,
+      "y": 42
+    },
+    "xy": [
+      118.5,
+      25
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.658823549747467,
+          "g": 0.658823549747467,
+          "b": 0.658823549747467,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:537",
+    "parent": "4:533",
+    "name": "Increase",
+    "type": "FRAME",
+    "size": {
+      "x": 100,
+      "y": 74
+    },
+    "xy": [
+      140,
+      9
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 3,
+          "y": 3
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 0.6431372761726379,
+          "g": 0.6431372761726379,
+          "b": 0.6431372761726379,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 0.6431372761726379,
+          "c1": 0.6431372761726379,
+          "c2": 0.6431372761726379,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:538",
+    "parent": "4:537",
+    "name": "Symbol",
+    "type": "TEXT",
+    "size": {
+      "x": 30,
+      "y": 58
+    },
+    "xy": [
+      35,
+      8
+    ],
+    "fontSize": 48,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "+",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:549",
+    "parent": "0:1",
+    "name": "关卡选择",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      5510,
+      -451
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.03529411926865578,
+          "g": 0.03529411926865578,
+          "b": 0.03529411926865578,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:550",
+    "parent": "4:549",
+    "name": "Paper panel",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "radius": 24,
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:556",
+    "parent": "4:550",
+    "name": "Level grid",
+    "type": "FRAME",
+    "size": {
+      "x": 272,
+      "y": 208
+    },
+    "xy": [
+      32,
+      136
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 8
+  },
+  {
+    "id": "4:557",
+    "parent": "4:556",
+    "name": "Level card",
+    "type": "FRAME",
+    "size": {
+      "x": 85,
+      "y": 100
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "padding": [
+      null,
+      10,
+      null,
+      8
+    ]
+  },
+  {
+    "id": "4:563",
+    "parent": "4:556",
+    "name": "Level card",
+    "type": "FRAME",
+    "size": {
+      "x": 85,
+      "y": 100
+    },
+    "xy": [
+      93,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "padding": [
+      null,
+      10,
+      null,
+      8
+    ]
+  },
+  {
+    "id": "4:566",
+    "parent": "4:556",
+    "name": "Level card",
+    "type": "FRAME",
+    "size": {
+      "x": 85,
+      "y": 100
+    },
+    "xy": [
+      186,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "padding": [
+      null,
+      10,
+      null,
+      8
+    ]
+  },
+  {
+    "id": "4:569",
+    "parent": "4:556",
+    "name": "Level card",
+    "type": "FRAME",
+    "size": {
+      "x": 85,
+      "y": 100
+    },
+    "xy": [
+      0,
+      108
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "padding": [
+      null,
+      10,
+      null,
+      8
+    ]
+  },
+  {
+    "id": "4:572",
+    "parent": "4:556",
+    "name": "Level card",
+    "type": "FRAME",
+    "size": {
+      "x": 85,
+      "y": 100
+    },
+    "xy": [
+      93,
+      108
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "padding": [
+      null,
+      10,
+      null,
+      8
+    ]
+  },
+  {
+    "id": "4:575",
+    "parent": "4:556",
+    "name": "Level card",
+    "type": "FRAME",
+    "size": {
+      "x": 85,
+      "y": 100
+    },
+    "xy": [
+      186,
+      108
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "padding": [
+      null,
+      10,
+      null,
+      8
+    ]
+  },
+  {
+    "id": "4:588",
+    "parent": "0:1",
+    "name": "游戏关卡",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      5918,
+      -451
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.03529411926865578,
+          "g": 0.03529411926865578,
+          "b": 0.03529411926865578,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:589",
+    "parent": "4:588",
+    "name": "Paper panel",
+    "type": "FRAME",
+    "size": {
+      "x": 336,
+      "y": 480
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:591",
+    "parent": "4:589",
+    "name": "Game header",
+    "type": "FRAME",
+    "size": {
+      "x": 280,
+      "y": 52
+    },
+    "xy": [
+      24,
+      19
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:592",
+    "parent": "4:591",
+    "name": "Level badge",
+    "type": "FRAME",
+    "size": {
+      "x": 118,
+      "y": 50
+    },
+    "xy": [
+      0,
+      1
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 4,
+          "y": 5
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.18039216101169586,
+          "b": 0.47058823704719543,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.18039216101169586,
+          "c2": 0.47058823704719543,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:595",
+    "parent": "4:592",
+    "name": "Level text",
+    "type": "TEXT",
+    "size": {
+      "x": 48,
+      "y": 29
+    },
+    "xy": [
+      35,
+      10.5
+    ],
+    "fontSize": 24,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "LV 1",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:596",
+    "parent": "4:597",
+    "name": "Timer",
+    "type": "TEXT",
+    "size": {
+      "x": 53,
+      "y": 29
+    },
+    "xy": [
+      32.5,
+      10.5
+    ],
+    "fontSize": 24,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "03.9",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:597",
+    "parent": "4:591",
+    "name": "Timer card",
+    "type": "FRAME",
+    "size": {
+      "x": 118,
+      "y": 50
+    },
+    "xy": [
+      162,
+      1
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 4,
+          "y": 5
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.8352941274642944,
+          "c2": 0.13333334028720856,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:599",
+    "parent": "4:589",
+    "name": "Maze board",
+    "type": "FRAME",
+    "size": {
+      "x": 276,
+      "y": 300
+    },
+    "xy": [
+      30,
+      90
+    ],
+    "border": 1,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 7,
+          "y": 8
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.18039216101169586,
+          "b": 0.47058823704719543,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.18039216101169586,
+          "c2": 0.47058823704719543,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:600",
+    "parent": "4:599",
+    "name": "Maze",
+    "type": "FRAME",
+    "size": {
+      "x": 269,
+      "y": 290
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 4,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:601",
+    "parent": "4:600",
+    "name": "Finish zone",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 30,
+      "y": 36
+    },
+    "xy": [
+      0,
+      304
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.18039216101169586,
+          "b": 0.47058823704719543,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:659",
+    "parent": "4:600",
+    "name": "Start pocket",
+    "type": "FRAME",
+    "size": {
+      "x": 32,
+      "y": 32
+    },
+    "xy": [
+      244,
+      0
+    ],
+    "border": 4,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:660",
+    "parent": "4:659",
+    "name": "Ball",
+    "type": "ELLIPSE",
+    "size": {
+      "x": 18,
+      "y": 18
+    },
+    "xy": [
+      7,
+      7
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 2,
+          "y": 2
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 0.2666666805744171
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 0,
+          "c1": 0,
+          "c2": 0,
+          "c3": 0.2666666805744171
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:661",
+    "parent": "4:589",
+    "name": "Restart button",
+    "type": "FRAME",
+    "size": {
+      "x": 204,
+      "y": 53
+    },
+    "xy": [
+      61,
+      396
+    ],
+    "radius": 4,
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 5,
+          "y": 6
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.18039216101169586,
+          "b": 0.47058823704719543,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.18039216101169586,
+          "c2": 0.47058823704719543,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:662",
+    "parent": "4:661",
+    "name": "Restart label",
+    "type": "TEXT",
+    "size": {
+      "x": 40,
+      "y": 24
+    },
+    "xy": [
+      82,
+      14.5
+    ],
+    "fontSize": 20,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "重来",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:716",
+    "parent": "4:497",
+    "name": "Level badge",
+    "type": "FRAME",
+    "size": {
+      "x": 84,
+      "y": 28
+    },
+    "xy": [
+      0,
+      4
+    ],
+    "radius": 4,
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      10,
+      4,
+      10,
+      4
+    ]
+  },
+  {
+    "id": "4:717",
+    "parent": "4:716",
+    "name": "Level label",
+    "type": "TEXT",
+    "size": {
+      "x": 64,
+      "y": 17
+    },
+    "xy": [
+      10,
+      5.5
+    ],
+    "fontSize": 14,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 1,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "LEVEL 01",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:718",
+    "parent": "4:496",
+    "name": "Color dots",
+    "type": "FRAME",
+    "size": {
+      "x": 80,
+      "y": 16
+    },
+    "xy": [
+      128,
+      448
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 8
+  },
+  {
+    "id": "4:719",
+    "parent": "4:718",
+    "name": "dot-yellow",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 16,
+      "y": 16
+    },
+    "xy": [
+      8,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:720",
+    "parent": "4:718",
+    "name": "dot-pink",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 16,
+      "y": 16
+    },
+    "xy": [
+      32,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.18039216101169586,
+          "b": 0.47058823704719543,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:721",
+    "parent": "4:718",
+    "name": "dot-black",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 16,
+      "y": 16
+    },
+    "xy": [
+      56,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:724",
+    "parent": "4:518",
+    "name": "Back button",
+    "type": "FRAME",
+    "size": {
+      "x": 272,
+      "y": 55
+    },
+    "xy": [
+      28,
+      392
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.95686274766922,
+          "g": 0.9607843160629272,
+          "b": 0.9607843160629272,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 3,
+    "shadow": [
+      {
+        "type": "DROP_SHADOW",
+        "offset": {
+          "x": 7,
+          "y": 8
+        },
+        "radius": 0,
+        "visible": true,
+        "blendMode": "NORMAL",
+        "spread": 0,
+        "showShadowBehindNode": false,
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "authoredColor": {
+          "space": "DEFAULT",
+          "c0": 1,
+          "c1": 0.8352941274642944,
+          "c2": 0.13333334028720856,
+          "c3": 1
+        }
+      }
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:725",
+    "parent": "4:724",
+    "name": "Label",
+    "type": "TEXT",
+    "size": {
+      "x": 34,
+      "y": 20
+    },
+    "xy": [
+      119,
+      17.5
+    ],
+    "fontSize": 17,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "返回",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:728",
+    "parent": "4:550",
+    "name": "Levels badge",
+    "type": "FRAME",
+    "size": {
+      "x": 69,
+      "y": 24
+    },
+    "xy": [
+      32,
+      16
+    ],
+    "radius": 4,
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      10,
+      4,
+      10,
+      4
+    ]
+  },
+  {
+    "id": "4:729",
+    "parent": "4:728",
+    "name": "LEVELS",
+    "type": "TEXT",
+    "size": {
+      "x": 49,
+      "y": 16
+    },
+    "xy": [
+      10,
+      4
+    ],
+    "fontSize": 13,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 1,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "LEVELS",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:730",
+    "parent": "4:550",
+    "name": "Title block",
+    "type": "FRAME",
+    "size": {
+      "x": 304,
+      "y": 44
+    },
+    "xy": [
+      16,
+      47
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      1,
+      null,
+      null
+    ],
+    "gap": 6
+  },
+  {
+    "id": "4:731",
+    "parent": "4:730",
+    "name": "Title",
+    "type": "TEXT",
+    "size": {
+      "x": 292,
+      "y": 43
+    },
+    "xy": [
+      6,
+      1
+    ],
+    "fontSize": 32,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Black",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "选择关卡",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:732",
+    "parent": "4:550",
+    "name": "Pink underline",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 80,
+      "y": 4
+    },
+    "xy": [
+      121,
+      111
+    ],
+    "radius": 2,
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.24313725531101227,
+          "b": 0.5411764979362488,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:733",
+    "parent": "4:557",
+    "name": "Rating",
+    "type": "FRAME",
+    "size": {
+      "x": 61,
+      "y": 37
+    },
+    "xy": [
+      12,
+      10
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 3
+  },
+  {
+    "id": "4:737",
+    "parent": "4:557",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 47,
+      "y": 63
+    },
+    "xy": [
+      19,
+      47
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "01",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:738",
+    "parent": "4:563",
+    "name": "lock-keyhole",
+    "type": "FRAME",
+    "size": {
+      "x": 22,
+      "y": 22
+    },
+    "xy": [
+      31.5,
+      90
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:739",
+    "parent": "4:563",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 43,
+      "y": 43
+    },
+    "xy": [
+      21,
+      47
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "02",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:740",
+    "parent": "4:566",
+    "name": "lock-keyhole",
+    "type": "FRAME",
+    "size": {
+      "x": 22,
+      "y": 22
+    },
+    "xy": [
+      31.5,
+      10
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:741",
+    "parent": "4:566",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 43,
+      "y": 43
+    },
+    "xy": [
+      21,
+      49
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "03",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:742",
+    "parent": "4:569",
+    "name": "lock-keyhole",
+    "type": "FRAME",
+    "size": {
+      "x": 22,
+      "y": 22
+    },
+    "xy": [
+      31.5,
+      10
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:743",
+    "parent": "4:569",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 43,
+      "y": 43
+    },
+    "xy": [
+      21,
+      49
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "04",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:744",
+    "parent": "4:572",
+    "name": "lock-keyhole",
+    "type": "FRAME",
+    "size": {
+      "x": 22,
+      "y": 22
+    },
+    "xy": [
+      31.5,
+      10
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:745",
+    "parent": "4:572",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 43,
+      "y": 43
+    },
+    "xy": [
+      21,
+      49
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "05",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:746",
+    "parent": "4:575",
+    "name": "lock-keyhole",
+    "type": "FRAME",
+    "size": {
+      "x": 22,
+      "y": 22
+    },
+    "xy": [
+      31.5,
+      10
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:747",
+    "parent": "4:575",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 43,
+      "y": 43
+    },
+    "xy": [
+      21,
+      49
+    ],
+    "fontSize": 36,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "06",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:748",
+    "parent": "4:550",
+    "name": "Progress card",
+    "type": "FRAME",
+    "size": {
+      "x": 272,
+      "y": 53
+    },
+    "xy": [
+      32,
+      372
+    ],
+    "radius": 6,
+    "fill": [
+      {
+        "color": {
+          "r": 0.9803921580314636,
+          "g": 0.9725490212440491,
+          "b": 0.9529411792755127,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 2.5,
+    "padding": [
+      12,
+      10,
+      12,
+      10
+    ],
+    "gap": 6
+  },
+  {
+    "id": "4:749",
+    "parent": "4:748",
+    "name": "Progress label row",
+    "type": "FRAME",
+    "size": {
+      "x": 248,
+      "y": 17
+    },
+    "xy": [
+      12,
+      10
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:750",
+    "parent": "4:749",
+    "name": "Label",
+    "type": "TEXT",
+    "size": {
+      "x": 42,
+      "y": 17
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "fontSize": 14,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "已完成",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:751",
+    "parent": "4:749",
+    "name": "Count",
+    "type": "TEXT",
+    "size": {
+      "x": 29,
+      "y": 17
+    },
+    "xy": [
+      219,
+      0
+    ],
+    "fontSize": 14,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": 0,
+      "units": "PERCENT"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "1 / 6",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:752",
+    "parent": "4:748",
+    "name": "Progress track",
+    "type": "FRAME",
+    "size": {
+      "x": 248,
+      "y": 10
+    },
+    "xy": [
+      12,
+      33
+    ],
+    "radius": 5,
+    "fill": [
+      {
+        "color": {
+          "r": 0.8980392217636108,
+          "g": 0.8980392217636108,
+          "b": 0.8980392217636108,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:753",
+    "parent": "4:752",
+    "name": "Progress fill",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 40,
+      "y": 10
+    },
+    "xy": [
+      0,
+      0
+    ],
+    "radius": 5,
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.8352941274642944,
+          "b": 0.13333334028720856,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:754",
+    "parent": "4:550",
+    "name": "Pagination dots",
+    "type": "FRAME",
+    "size": {
+      "x": 304,
+      "y": 10
+    },
+    "xy": [
+      0,
+      440
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 8
+  },
+  {
+    "id": "4:755",
+    "parent": "4:754",
+    "name": "Dot active",
+    "type": "ELLIPSE",
+    "size": {
+      "x": 10,
+      "y": 10
+    },
+    "xy": [
+      138,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 1,
+          "g": 0.24313725531101227,
+          "b": 0.5411764979362488,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "4:756",
+    "parent": "4:754",
+    "name": "Dot inactive",
+    "type": "ELLIPSE",
+    "size": {
+      "x": 10,
+      "y": 10
+    },
+    "xy": [
+      156,
+      0
+    ],
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "18:3",
+    "parent": "0:0",
+    "name": "Page 2",
+    "type": "CANVAS",
+    "xy": [
+      0,
+      0
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "18:7",
+    "parent": "4:733",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 61,
+      "y": 29
+    },
+    "xy": [
+      0,
+      4
+    ],
+    "fontSize": 16,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "关卡",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "18:9",
+    "parent": "4:563",
+    "name": "Rating",
+    "type": "FRAME",
+    "size": {
+      "x": 61,
+      "y": 37
+    },
+    "xy": [
+      12,
+      10
+    ],
+    "border": 1,
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "gap": 3
+  },
+  {
+    "id": "18:10",
+    "parent": "18:9",
+    "name": "Number",
+    "type": "TEXT",
+    "size": {
+      "x": 61,
+      "y": 29
+    },
+    "xy": [
+      0,
+      4
+    ],
+    "fontSize": 16,
+    "font": {
+      "family": "Noto Sans SC",
+      "style": "Bold",
+      "postscript": ""
+    },
+    "lineHeight": {
+      "value": 100,
+      "units": "PERCENT"
+    },
+    "spacing": {
+      "value": -1.5,
+      "units": "RAW"
+    },
+    "fill": [
+      {
+        "color": {
+          "r": 0.06666667014360428,
+          "g": 0.06666667014360428,
+          "b": 0.06666667014360428,
+          "a": 1
+        },
+        "type": "SOLID"
+      }
+    ],
+    "border": 1,
+    "text": "关卡",
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  {
+    "id": "33:2",
+    "parent": "0:0",
+    "name": "Page 3",
+    "type": "CANVAS",
+    "xy": [
+      0,
+      0
+    ],
+    "padding": [
+      null,
+      null,
+      null,
+      null
+    ]
+  }
+]

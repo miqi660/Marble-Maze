@@ -277,20 +277,20 @@ export default {
 </script>
 
 <style>
-.page { width: 100%; height: 100%; background-color: #090909; }
+.page { width: 100%; height: 100%; background-color: #FAF8F3; }
 .container { position: absolute; left: 0px; top: 0px; overflow: hidden; }
 .design-stage { position: absolute; left: 0px; top: 0px; width: 336px; height: 480px; }
-.paper { position: absolute; left: 16px; top: 0px; width: 304px; height: 480px; background-color: #FAF8F3; }
+.paper { position: absolute; left: 0px; top: 0px; width: 336px; height: 480px; background-color: #FAF8F3; }
 .abs { position: absolute; }
 .paper { border-radius: 24px; }
 .screen { width: 304px; height: 480px; }
-.page-content { animation-duration: 220ms; animation-timing-function: ease-out; animation-iteration-count: 1; }
+.page-content { position: absolute; left: 16px; top: 0px; animation-duration: 220ms; animation-timing-function: ease-out; animation-iteration-count: 1; }
 .slide-from-right { animation-name: slideFromRight; }
 .slide-from-left { animation-name: slideFromLeft; }
 @keyframes slideFromRight { 0% { transform: translateX(336px); } 100% { transform: translateX(0px); } }
 @keyframes slideFromLeft { 0% { transform: translateX(-336px); } 100% { transform: translateX(0px); } }
-.eyebrow { height: 24px; background-color: #111111; color: #FAF8F3; font-size: 13px; font-weight: 900; text-align: center; border-radius: 4px; }
-.title { width: 304px; height: 44px; font-size: 32px; font-weight: 900; color: #111111; text-align: center; }
+.eyebrow { height: 24px; background-color: #111111; color: #FAF8F3; font-size: 13px; font-weight: bold; text-align: center; border-radius: 4px; }
+.title { width: 304px; height: 44px; font-size: 32px; font-weight: bold; color: #111111; text-align: center; }
 .bar { width: 80px; height: 4px; background-color: #FF3E8A; border-radius: 2px; }
 .shadow, .card { width: 85px; height: 100px; }
 .card { border: 3px solid #111111; justify-content: center; align-items: center; }
@@ -304,12 +304,12 @@ export default {
 .lock-keyhole { position: absolute; left: 6px; top: 11px; width: 4px; height: 4px; border-radius: 2px; background-color: #D9D4CC; }
 .lock-keyhole-stem { position: absolute; left: 7px; top: 14px; width: 2px; height: 3px; background-color: #D9D4CC; }
 .prog { width: 272px; height: 53px; background-color: #FAF8F3; border: 2.5px solid #FF3E8A; border-radius: 6px; }
-.prog-label, .prog-count { height: 20px; font-size: 14px; font-weight: 900; color: #111111; }
+.prog-label, .prog-count { height: 20px; font-size: 14px; font-weight: bold; color: #111111; }
 .prog-count { width: 75px; text-align: right; }
 .track { width: 248px; height: 10px; border-radius: 5px; background-color: #E5E5E5; }
 .fill { height: 10px; border-radius: 5px; background-color: #FFD522; }
 .custom-progress { justify-content: center; align-items: center; }
-.prog-txt { font-size: 18px; font-weight: 900; color: #111111; }
+.prog-txt { font-size: 18px; font-weight: bold; color: #111111; }
 .empty-plus { font-size: 52px; font-weight: 900; color: #A4A4A4; text-align: center; }
 .add-card { background-color: #F4F5F5; }
 .pagination { width: 304px; height: 10px; justify-content: center; align-items: center; }
